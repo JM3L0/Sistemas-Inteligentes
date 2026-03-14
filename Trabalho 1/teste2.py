@@ -204,7 +204,7 @@ class MapaVisibilidade:
         ax.plot(0, 0, 'bs', markersize=10, label='Início')
         ax.plot(self.largura, self.altura, 'bs', markersize=10, label='Fim')
 
-        plt.title(f"Mapa de Visibilidade: {len(self.obstaculos)} Obstáculos")
+        plt.title(f"Mapa de Visibilidade: {len(self.obstaculos)} Obstáculos\nColisões: {self.quant_colisoes}")
         plt.grid(True)
 
         plt.show()
