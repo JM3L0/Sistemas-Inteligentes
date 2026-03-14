@@ -9,9 +9,7 @@ altura = 50
 quantidade_obstaculos = 30
 lado_triangulo = 10
 
-EPS = 1e-9
-
-
+EPS = 1e-9 # Constante de precisão
 
 @dataclass
 class Triangulo:
