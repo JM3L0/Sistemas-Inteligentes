@@ -11,8 +11,7 @@ lado_triangulo = 10
 
 EPS = 1e-9
 
-quant_colisoes = 0
-quant_inseridos = 0
+
 
 @dataclass
 class Triangulo:
@@ -30,6 +29,8 @@ class MapaVisibilidade:
         self.largura = largura
         self.altura = altura
         self.obstaculos = []
+        self.quant_colisoes = 0
+        self.quant_inseridos = 0
 
     # =============================
     # GEOMETRIA BÁSICA
@@ -142,7 +143,6 @@ class MapaVisibilidade:
     # =============================
 
     def adicionar_obstaculos_aleatorios(self, qtd, lado):
-        global quant_colisoes, quant_inseridos
         margem = lado / np.sqrt(3)
 
         for _ in range(qtd):
@@ -165,12 +165,12 @@ class MapaVisibilidade:
 
                     if self.triangulos_colidem(novo, obstaculo):
                         colidiu = True
-                        quant_colisoes += 1
+                        self.quant_colisoes += 1
                         break
 
                 if not colidiu:
                     self.obstaculos.append(novo)
-                    quant_inseridos += 1
+                    self.quant_inseridos += 1
                     break
 
     # =============================
@@ -222,5 +222,5 @@ mapa.adicionar_obstaculos_aleatorios(
 )
 
 mapa.plotar_mapa()
-print(f"Colisões: {quant_colisoes}")
-print(f"Inseridos: {quant_inseridos}")
+print(f"Colisões: {mapa.quant_colisoes}")
+print(f"Inseridos: {mapa.quant_inseridos}")
