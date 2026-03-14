@@ -2,6 +2,12 @@ import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import random
 
+# ======== Parâmetros ======== 
+largura = 200
+altura = 200
+quantidade_obstaculos = 250
+lado_triangulo = 10
+
 class MapaVisibilidade:
     def __init__(self, largura, altura):
         self.largura = largura
@@ -150,7 +156,8 @@ class MapaVisibilidade:
         plt.grid(True)
         plt.show()
 
-# --- Exemplo de Uso ---
-meu_mapa = MapaVisibilidade(largura=100, altura=100)
-meu_mapa.adicionar_obstaculos_aleatorios(qtd=60, lado_triangulo=10)
+
+
+meu_mapa = MapaVisibilidade(largura, altura)
+meu_mapa.adicionar_obstaculos_aleatorios(qtd=quantidade_obstaculos, lado_triangulo=lado_triangulo)
 meu_mapa.plotar_mapa()
