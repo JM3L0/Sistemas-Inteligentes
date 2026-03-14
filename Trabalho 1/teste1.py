@@ -115,28 +115,24 @@ class MapaVisibilidade:
         return [v1, v2, v3]
 
     def adicionar_obstaculos_aleatorios(self, qtd, lado_triangulo):
-        tentativas = 0
-        while len(self.obstaculos) < qtd and tentativas < 1000:
-            # Sorteia um centro dentro dos limites do mapa (com margem)
-            cx = random.uniform(lado_triangulo, self.largura - lado_triangulo)
-            cy = random.uniform(lado_triangulo, self.altura - lado_triangulo)
-            
-            novo_triangulo = self.gerar_triangulo_equilatero(cx, cy, lado_triangulo)
-            
-            # Verifica colisão com todos os obstáculos existentes usando determinantes
-            colidiu = False
-            for obstaculo in self.obstaculos:
-                if self.triangulos_colidem(novo_triangulo, obstaculo):
-                    colidiu = True
-                    break
-            
-            if not colidiu:
-                self.obstaculos.append(novo_triangulo)
-            
-            tentativas += 1
-        
-        if len(self.obstaculos) < qtd:
-            print(f"Aviso: só foi possível colocar {len(self.obstaculos)} de {qtd} obstáculos sem colisão.")
+        for i in range(qtd):
+            while True:
+                # Sorteia um centro dentro dos limites do mapa (com margem)
+                cx = random.uniform(lado_triangulo, self.largura - lado_triangulo)
+                cy = random.uniform(lado_triangulo, self.altura - lado_triangulo)
+                
+                novo_triangulo = self.gerar_triangulo_equilatero(cx, cy, lado_triangulo)
+                
+                # Verifica colisão com todos os obstáculos existentes usando determinantes
+                colidiu = False
+                for obstaculo in self.obstaculos:
+                    if self.triangulos_colidem(novo_triangulo, obstaculo):
+                        colidiu = True
+                        break
+                
+                if not colidiu:
+                    self.obstaculos.append(novo_triangulo)
+                    break  # Achou lugar sem colisão, vai pro próximo triângulo
 
     def plotar_mapa(self):
         fig, ax = plt.subplots(figsize=(8, 8))
