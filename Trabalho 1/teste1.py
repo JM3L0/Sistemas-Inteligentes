@@ -161,3 +161,4 @@ class MapaVisibilidade:
 meu_mapa = MapaVisibilidade(largura, altura)
 meu_mapa.adicionar_obstaculos_aleatorios(qtd=quantidade_obstaculos, lado_triangulo=lado_triangulo)
 meu_mapa.plotar_mapa()
+
