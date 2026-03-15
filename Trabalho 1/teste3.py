@@ -43,7 +43,50 @@ class MapaVisibilidade:
         self.quant_inseridos = 0
 
     # =========================================================
-    # GEOMETRIA COMPUTACIONAL (Funções base de cálculo)
+    # 1. GERAÇÃO DE TRIÂNGULOS EQUILÁTEROS
+    # =========================================================
+
+    def gerar_triangulo(self, cx, cy, lado):
+        """
+        Cria um triângulo equilátero centrado em (cx, cy).
+        A ponta aponta para cima (eixo Y positivo).
+        """
+        altura = (lado * np.sqrt(3)) / 2  # Altura do triângulo equilátero
+
+        ponta_superior = (cx, cy + (2 / 3) * altura)
+        base_esquerda  = (cx - lado / 2, cy - altura / 3)
+        base_direita   = (cx + lado / 2, cy - altura / 3)
+
+        return Triangulo(ponta_superior, base_esquerda, base_direita)
+
+    # =========================================================
+    # 2. FILTRO RÁPIDO — BOUNDING BOX (Caixa Envolvente)
+    # =========================================================
+
+    def bounding_box(self, tri):
+        """Retorna o menor retângulo que envolve o triângulo: (minX, maxX, minY, maxY)."""
+        xs = [v[0] for v in tri.vertices()]
+        ys = [v[1] for v in tri.vertices()]
+        return min(xs), max(xs), min(ys), max(ys)
+
+    def bbox_colidem(self, tri1, tri2):
+        """
+        Verifica se as caixas envolventes (bounding boxes) se sobrepõem.
+        Se NÃO se sobrepõem, é impossível os triângulos colidirem.
+        """
+        minx1, maxx1, miny1, maxy1 = self.bounding_box(tri1)
+        minx2, maxx2, miny2, maxy2 = self.bounding_box(tri2)
+
+        # Se qualquer condição for verdadeira, estão separados
+        return not (
+            maxx1 < minx2 or  # tri1 totalmente à esquerda de tri2
+            maxx2 < minx1 or  # tri2 totalmente à esquerda de tri1
+            maxy1 < miny2 or  # tri1 totalmente abaixo de tri2
+            maxy2 < miny1     # tri2 totalmente abaixo de tri1
+        )
+
+    # =========================================================
+    # 3. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
     # =========================================================
 
     def orientacao(self, A, B, C):
@@ -55,6 +98,16 @@ class MapaVisibilidade:
           = 0  →  A, B e C são colineares (na mesma reta)
         """
         return (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0])
+
+    def ponto_no_segmento(self, A, B, P):
+        """
+        Verifica se o ponto P (já sabido colinear com A e B)
+        está dentro do retângulo delimitado pelo segmento AB.
+        """
+        return (
+            min(A[0], B[0]) <= P[0] <= max(A[0], B[0]) and
+            min(A[1], B[1]) <= P[1] <= max(A[1], B[1])
+        )
 
     def ponto_dentro_triangulo(self, P, tri):
         """
@@ -73,16 +126,6 @@ class MapaVisibilidade:
 
         # Se tem sinais misturados, P está fora do triângulo
         return not (tem_negativo and tem_positivo)
-
-    def ponto_no_segmento(self, A, B, P):
-        """
-        Verifica se o ponto P (já sabido colinear com A e B)
-        está dentro do retângulo delimitado pelo segmento AB.
-        """
-        return (
-            min(A[0], B[0]) <= P[0] <= max(A[0], B[0]) and
-            min(A[1], B[1]) <= P[1] <= max(A[1], B[1])
-        )
 
     def segmentos_cruzam(self, A, B, C, D):
         """
@@ -111,10 +154,6 @@ class MapaVisibilidade:
 
         return False
 
-    # =========================================================
-    # DETECÇÃO DE COLISÃO ENTRE TRIÂNGULOS
-    # =========================================================
-
     def triangulos_colidem(self, tri1, tri2):
         """
         Verifica colisão real entre dois triângulos em 3 etapas:
@@ -141,50 +180,7 @@ class MapaVisibilidade:
         return False
 
     # =========================================================
-    # BOUNDING BOX (Filtro rápido antes da colisão real)
-    # =========================================================
-
-    def bounding_box(self, tri):
-        """Retorna o menor retângulo que envolve o triângulo: (minX, maxX, minY, maxY)."""
-        xs = [v[0] for v in tri.vertices()]
-        ys = [v[1] for v in tri.vertices()]
-        return min(xs), max(xs), min(ys), max(ys)
-
-    def bbox_colidem(self, tri1, tri2):
-        """
-        Verifica se as caixas envolventes (bounding boxes) se sobrepõem.
-        Se NÃO se sobrepõem, é impossível os triângulos colidirem.
-        """
-        minx1, maxx1, miny1, maxy1 = self.bounding_box(tri1)
-        minx2, maxx2, miny2, maxy2 = self.bounding_box(tri2)
-
-        # Se qualquer condição for verdadeira, estão separados
-        return not (
-            maxx1 < minx2 or  # tri1 totalmente à esquerda de tri2
-            maxx2 < minx1 or  # tri2 totalmente à esquerda de tri1
-            maxy1 < miny2 or  # tri1 totalmente abaixo de tri2
-            maxy2 < miny1     # tri2 totalmente abaixo de tri1
-        )
-
-    # =========================================================
-    # GERAÇÃO DE TRIÂNGULOS EQUILÁTEROS
-    # =========================================================
-
-    def gerar_triangulo(self, cx, cy, lado):
-        """
-        Cria um triângulo equilátero centrado em (cx, cy).
-        A ponta aponta para cima (eixo Y positivo).
-        """
-        altura = (lado * np.sqrt(3)) / 2  # Altura do triângulo equilátero
-
-        ponta_superior = (cx, cy + (2 / 3) * altura)
-        base_esquerda  = (cx - lado / 2, cy - altura / 3)
-        base_direita   = (cx + lado / 2, cy - altura / 3)
-
-        return Triangulo(ponta_superior, base_esquerda, base_direita)
-
-    # =========================================================
-    # INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
+    # 4. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
     # =========================================================
 
     def _colide_com_algum_obstaculo(self, novo):
@@ -220,7 +216,7 @@ class MapaVisibilidade:
                     break
 
     # =========================================================
-    # PLOTAGEM DO MAPA
+    # 5. SAÍDA — PLOTAGEM DO MAPA
     # =========================================================
 
     def plotar_mapa(self):
