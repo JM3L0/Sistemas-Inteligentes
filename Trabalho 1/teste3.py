@@ -201,13 +201,14 @@ class MapaVisibilidade:
         Para cada triângulo, sorteia posições até encontrar
         uma que não colida com nenhum obstáculo já existente.
         """
-        margem_x = lado / 2          # Extensão horizontal do triângulo (metade da base)
-        margem_y = lado / np.sqrt(3)  # Extensão vertical do triângulo (distância do centro ao topo)
+        margem_x = lado / 2                         # Extensão horizontal do triângulo
+        margem_y_topo = lado / np.sqrt(3)           # Distância do centro à ponta de cima
+        margem_y_base = lado / (2 * np.sqrt(3))     # Distância do centro à base
 
         for _ in range(qtd):
             for tentativa in range(self.largura * 2):
-                cx = random.uniform(margem_x, self.largura - margem_x)
-                cy = random.uniform(margem_y, self.altura - margem_y)
+                cx = random.uniform(margem_x, self.largura - margem_x) # Sorteia a coordenada x do centro do triângulo
+                cy = random.uniform(margem_y_base, self.altura - margem_y_topo) # Sorteia a coordenada y do centro do triângulo
                 novo = self.gerar_triangulo(cx, cy, lado)
 
                 if not self._colide_com_algum_obstaculo(novo):
@@ -234,11 +235,10 @@ class MapaVisibilidade:
             ax.fill(xs, ys, color="red", alpha=0.5, edgecolor="black")
 
         # Pontos de referência
-        ax.plot(0, 0, 'bs', label="Início")
-        ax.plot(self.largura, self.altura, 'gs', label="Fim")
+        ax.plot(0, 0, 'bs')
+        ax.plot(self.largura, self.altura, 'gs')
 
         plt.title(f"Obstáculos: {len(self.obstaculos)}  |  Colisões: {self.quant_colisoes}")
-        plt.legend()
         plt.grid()
         plt.show()
 
