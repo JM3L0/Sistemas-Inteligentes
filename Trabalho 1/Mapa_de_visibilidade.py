@@ -3,23 +3,35 @@ import numpy as np  # type: ignore
 import random
 from dataclasses import dataclass
 
-# ======== PARÂMETROS ========
-largura = 100
-altura = 50
-quantidade_obstaculos = 30
-lado_triangulo = 10
+# ===== PARÂMETROS DO MAPA =====
+LARGURA = 100               # Largura do mapa (eixo X)
+ALTURA = 50                # Altura do mapa (eixo Y)
+QUANTIDADE_OBSTACULOS = 35  # Quantos triângulos tentar inserir
+LADO_TRIANGULO = 10         # Tamanho do lado de cada triângulo equilátero
 
-EPS = 1e-9 # Constante de precisão
+EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
+
+
+# ===== ESTRUTURA DE DADOS =====
 
 @dataclass
 class Triangulo:
+    """Representa um triângulo com 3 vértices (tuplas x, y)."""
     v1: tuple
     v2: tuple
     v3: tuple
 
     def vertices(self):
+        """Retorna os 3 vértices como lista."""
         return [self.v1, self.v2, self.v3]
 
+    def arestas(self):
+        """Retorna as 3 arestas como pares de vértices: [(v1,v2), (v2,v3), (v3,v1)]."""
+        vs = self.vertices()
+        return [(vs[i], vs[(i + 1) % 3]) for i in range(3)]
+
+
+# ===== CLASSE PRINCIPAL =====
 
 class MapaVisibilidade:
 
@@ -30,195 +42,217 @@ class MapaVisibilidade:
         self.quant_colisoes = 0
         self.quant_inseridos = 0
 
-    # =============================
-    # GEOMETRIA BÁSICA
-    # =============================
+    # =========================================================
+    # 1. GERAÇÃO DE TRIÂNGULOS EQUILÁTEROS
+    # =========================================================
 
-    def determinante(self, A, B, P):
-        return (B[0] - A[0]) * (P[1] - A[1]) - (B[1] - A[1]) * (P[0] - A[0])
+    def gerar_triangulo(self, cx, cy, lado):
+        """
+        Cria um triângulo equilátero centrado em (cx, cy).
+        A ponta aponta para cima (eixo Y positivo).
+        """
+        altura = (lado * np.sqrt(3)) / 2  # Altura do triângulo equilátero
 
-    def ponto_dentro_triangulo(self, P, triangulo):
+        ponta_superior = (cx, cy + (2 / 3) * altura)
+        base_esquerda  = (cx - lado / 2, cy - altura / 3)
+        base_direita   = (cx + lado / 2, cy - altura / 3)
 
-        A, B, C = triangulo.vertices()
+        return Triangulo(ponta_superior, base_esquerda, base_direita)
 
-        d1 = self.determinante(A, B, P)
-        d2 = self.determinante(B, C, P)
-        d3 = self.determinante(C, A, P)
+    # =========================================================
+    # 2. FILTRO RÁPIDO — BOUNDING BOX (Caixa Envolvente)
+    # =========================================================
 
-        tem_neg = (d1 < -EPS) or (d2 < -EPS) or (d3 < -EPS)
-        tem_pos = (d1 > EPS) or (d2 > EPS) or (d3 > EPS)
+    def bounding_box(self, tri):
+        """Retorna o menor retângulo que envolve o triângulo: (minX, maxX, minY, maxY)."""
+        xs = [v[0] for v in tri.vertices()]
+        ys = [v[1] for v in tri.vertices()]
+        return min(xs), max(xs), min(ys), max(ys)
 
-        return not (tem_neg and tem_pos)
+    def bbox_colidem(self, tri1, tri2):
+        """
+        Verifica se as caixas envolventes (bounding boxes) se sobrepõem.
+        Se NÃO se sobrepõem, é impossível os triângulos colidirem.
+        """
+        minx1, maxx1, miny1, maxy1 = self.bounding_box(tri1)
+        minx2, maxx2, miny2, maxy2 = self.bounding_box(tri2)
 
-    def no_segmento(self, A, B, P):
+        # Se qualquer condição for verdadeira, estão separados
+        return not (
+            maxx1 < minx2 or  # tri1 totalmente à esquerda de tri2
+            maxx2 < minx1 or  # tri2 totalmente à esquerda de tri1
+            maxy1 < miny2 or  # tri1 totalmente abaixo de tri2
+            maxy2 < miny1     # tri2 totalmente abaixo de tri1
+        )
 
+    # =========================================================
+    # 3. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
+    # =========================================================
+
+    def orientacao(self, A, B, C):
+        """
+        Calcula o produto vetorial 2D dos vetores AB e AC.
+        Retorna:
+          > 0  →  C está à ESQUERDA da reta A→B
+          < 0  →  C está à DIREITA da reta A→B
+          = 0  →  A, B e C são colineares (na mesma reta)
+        """
+        return (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0])
+
+    def ponto_no_segmento(self, A, B, P):
+        """
+        Verifica se o ponto P (já sabido colinear com A e B)
+        está dentro do retângulo delimitado pelo segmento AB.
+        """
         return (
             min(A[0], B[0]) <= P[0] <= max(A[0], B[0]) and
             min(A[1], B[1]) <= P[1] <= max(A[1], B[1])
         )
 
-    def segmentos_se_cruzam(self, A, B, C, D):
+    def ponto_dentro_triangulo(self, P, tri):
+        """
+        Verifica se o ponto P está dentro do triângulo usando
+        o método dos semi-planos (3 testes de orientação).
+        Se P estiver sempre do mesmo lado das 3 arestas, está dentro.
+        """
+        A, B, C = tri.vertices()
 
-        d1 = self.determinante(A, B, C)
-        d2 = self.determinante(A, B, D)
-        d3 = self.determinante(C, D, A)
-        d4 = self.determinante(C, D, B)
+        d1 = self.orientacao(A, B, P)
+        d2 = self.orientacao(B, C, P)
+        d3 = self.orientacao(C, A, P)
 
-        if ((d1 > EPS and d2 < -EPS) or (d1 < -EPS and d2 > EPS)) and \
-           ((d3 > EPS and d4 < -EPS) or (d3 < -EPS and d4 > EPS)):
+        tem_negativo = (d1 < -EPS) or (d2 < -EPS) or (d3 < -EPS)
+        tem_positivo = (d1 > EPS) or (d2 > EPS) or (d3 > EPS)
+
+        # Se tem sinais misturados, P está fora do triângulo
+        return not (tem_negativo and tem_positivo)
+
+    def segmentos_cruzam(self, A, B, C, D):
+        """
+        Verifica se o segmento AB cruza o segmento CD.
+        Usa orientação para determinar se os pontos estão
+        em lados opostos de cada reta.
+        """
+        d1 = self.orientacao(A, B, C)
+        d2 = self.orientacao(A, B, D)
+        d3 = self.orientacao(C, D, A)
+        d4 = self.orientacao(C, D, B)
+
+        # Caso geral: pontos em lados opostos (sinais trocados)
+        if (d1 * d2 < 0) and (d3 * d4 < 0):
             return True
 
-        if abs(d1) < EPS and self.no_segmento(A, B, C):
+        # Casos especiais: ponto colinear encostando no segmento
+        if abs(d1) < EPS and self.ponto_no_segmento(A, B, C): # Se o ponto C estiver colinear com A e B
             return True
-        if abs(d2) < EPS and self.no_segmento(A, B, D):
+        if abs(d2) < EPS and self.ponto_no_segmento(A, B, D): # Se o ponto D estiver colinear com A e B
             return True
-        if abs(d3) < EPS and self.no_segmento(C, D, A):
+        if abs(d3) < EPS and self.ponto_no_segmento(C, D, A): # Se o ponto A estiver colinear com C e D
             return True
-        if abs(d4) < EPS and self.no_segmento(C, D, B):
+        if abs(d4) < EPS and self.ponto_no_segmento(C, D, B): # Se o ponto B estiver colinear com C e D
             return True
 
         return False
 
     def triangulos_colidem(self, tri1, tri2):
-
-        for v in tri1.vertices():
-            if self.ponto_dentro_triangulo(v, tri2):
+        """
+        Verifica colisão real entre dois triângulos em 3 etapas:
+        1. Algum vértice de tri1 está dentro de tri2?
+        2. Algum vértice de tri2 está dentro de tri1?
+        3. Alguma aresta de tri1 cruza alguma aresta de tri2?
+        """
+        # Etapa 1: vértices de tri1 dentro de tri2
+        for vertice in tri1.vertices():
+            if self.ponto_dentro_triangulo(vertice, tri2):
                 return True
 
-        for v in tri2.vertices():
-            if self.ponto_dentro_triangulo(v, tri1):
+        # Etapa 2: vértices de tri2 dentro de tri1
+        for vertice in tri2.vertices():
+            if self.ponto_dentro_triangulo(vertice, tri1):
                 return True
 
-        arestas1 = [(tri1.vertices()[i], tri1.vertices()[(i + 1) % 3]) for i in range(3)]
-        arestas2 = [(tri2.vertices()[i], tri2.vertices()[(i + 1) % 3]) for i in range(3)]
-
-        for a1, b1 in arestas1:
-            for a2, b2 in arestas2:
-                if self.segmentos_se_cruzam(a1, b1, a2, b2):
+        # Etapa 3: cruzamento de arestas (caso "Estrela de Davi")
+        for a1, b1 in tri1.arestas():
+            for a2, b2 in tri2.arestas():
+                if self.segmentos_cruzam(a1, b1, a2, b2):
                     return True
 
         return False
 
-    # =============================
-    # BOUNDING BOX (OTIMIZAÇÃO)
-    # =============================
+    # =========================================================
+    # 4. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
+    # =========================================================
 
-    def bounding_box(self, tri):
-
-        xs = [v[0] for v in tri.vertices()]
-        ys = [v[1] for v in tri.vertices()]
-
-        return min(xs), max(xs), min(ys), max(ys)
-
-    def bbox_colidem(self, tri1, tri2):
-
-        minx1, maxx1, miny1, maxy1 = self.bounding_box(tri1)
-        minx2, maxx2, miny2, maxy2 = self.bounding_box(tri2)
-
-        return not (
-            maxx1 < minx2 or
-            maxx2 < minx1 or
-            maxy1 < miny2 or
-            maxy2 < miny1
-        )
-
-    # =============================
-    # GERAÇÃO DE TRIÂNGULOS
-    # =============================
-
-    def gerar_triangulo_equilatero(self, cx, cy, lado):
-
-        h = (lado * np.sqrt(3)) / 2
-
-        v1 = (cx, cy + (2/3) * h)
-        v2 = (cx - lado/2, cy - (1/3) * h)
-        v3 = (cx + lado/2, cy - (1/3) * h)
-
-        return [v1, v2, v3]
-
-    # =============================
-    # ADICIONAR OBSTÁCULOS
-    # =============================
+    def _colide_com_algum_obstaculo(self, novo):
+        """Verifica se o novo triângulo colide com qualquer obstáculo existente."""
+        for obstaculo in self.obstaculos:
+            # Filtro rápido: se as caixas não se tocam, pula
+            if not self.bbox_colidem(novo, obstaculo):
+                continue
+            # Filtro preciso: verifica colisão real dos triângulos
+            if self.triangulos_colidem(novo, obstaculo):
+                self.quant_colisoes += 1
+                return True
+        return False
 
     def adicionar_obstaculos_aleatorios(self, qtd, lado):
-        margem = lado / np.sqrt(3)
+        """
+        Tenta inserir 'qtd' triângulos aleatórios no mapa.
+        Para cada triângulo, sorteia posições até encontrar
+        uma que não colida com nenhum obstáculo já existente.
+        """
+        margem_x = lado / 2                         # Extensão horizontal do triângulo
+        margem_y_topo = lado / np.sqrt(3)           # Distância do centro à ponta de cima
+        margem_y_base = lado / (2 * np.sqrt(3))     # Distância do centro à base
 
         for _ in range(qtd):
+            for tentativa in range(self.largura * 2):
+                cx = random.uniform(margem_x, self.largura - margem_x) # Sorteia a coordenada x do centro do triângulo
+                cy = random.uniform(margem_y_base, self.altura - margem_y_topo) # Sorteia a coordenada y do centro do triângulo
+                novo = self.gerar_triangulo(cx, cy, lado) # Gera o triângulo
 
-            for tentativa in range(largura * 2):
-
-                cx = random.uniform(margem, self.largura - margem)
-                cy = random.uniform(margem, self.altura - margem)
-
-                vertices = self.gerar_triangulo_equilatero(cx, cy, lado)
-
-                novo = Triangulo(*vertices)
-
-                colidiu = False
-
-                for obstaculo in self.obstaculos:
-
-                    if not self.bbox_colidem(novo, obstaculo):
-                        continue
-
-                    if self.triangulos_colidem(novo, obstaculo):
-                        colidiu = True
-                        self.quant_colisoes += 1
-                        break
-
-                if not colidiu:
+                if not self._colide_com_algum_obstaculo(novo): # Verifica se o novo triângulo colide com algum obstáculo existente
                     self.obstaculos.append(novo)
                     self.quant_inseridos += 1
                     break
 
-    # =============================
-    # PLOTAGEM
-    # =============================
+    # =========================================================
+    # 5. SAÍDA — PLOTAGEM DO MAPA
+    # =========================================================
 
     def plotar_mapa(self):
-
-        fig, ax = plt.subplots(figsize=(8, 8))
+        """Desenha o mapa com todos os obstáculos e os pontos de início/fim."""
+        fig, ax = plt.subplots(figsize=(8, 4))
 
         ax.set_xlim(0, self.largura)
         ax.set_ylim(0, self.altura)
         ax.set_aspect('equal')
 
-        ax.set_facecolor("#f5f5f5")
-
+        # Desenha cada triângulo obstáculo
         for tri in self.obstaculos:
-
             vs = tri.vertices()
-            tri_fechado = vs + [vs[0]]
+            xs, ys = zip(*(vs + [vs[0]]))
+            ax.fill(xs, ys, color="red", alpha=0.5, edgecolor="black")
 
-            xs, ys = zip(*tri_fechado)
+        # Pontos de referência
+        ax.plot(0, 0, 'bs')
+        ax.plot(self.largura, self.altura, 'gs')
 
-            ax.fill(xs, ys,
-                    color="red",
-                    alpha=0.5,
-                    edgecolor="black",
-                    linewidth=0.8)
-
-        # Ponto inicial e ponto final
-        ax.plot(0, 0, 'bs', markersize=10, label='Início')
-        ax.plot(self.largura, self.altura, 'bs', markersize=10, label='Fim')
-
-        plt.title(f"Mapa de Visibilidade: {len(self.obstaculos)} Obstáculos\nColisões: {self.quant_colisoes}")
-        plt.grid(True)
-
+        plt.title(f"Obstáculos: {len(self.obstaculos)}  |  Colisões: {self.quant_colisoes}")
+        plt.grid()
         plt.show()
 
 
-# =============================
-# EXECUÇÃO
-# =============================
+# ===== EXECUÇÃO =====
 
-mapa = MapaVisibilidade(largura, altura)
+mapa = MapaVisibilidade(LARGURA, ALTURA)
 
 mapa.adicionar_obstaculos_aleatorios(
-    quantidade_obstaculos,
-    lado_triangulo
+    QUANTIDADE_OBSTACULOS,
+    LADO_TRIANGULO
 )
 
 mapa.plotar_mapa()
-print(f"Colisões: {mapa.quant_colisoes}")
-print(f"Inseridos: {mapa.quant_inseridos}")
+
+print(f"Colisões detectadas: {mapa.quant_colisoes}")
+print(f"Obstáculos inseridos: {mapa.quant_inseridos}")
