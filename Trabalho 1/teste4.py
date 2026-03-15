@@ -1,12 +1,13 @@
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import random
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
 LARGURA = 1000               # Largura do mapa (eixo X)
 ALTURA = 500                # Altura do mapa (eixo Y)
-QUANTIDADE_OBSTACULOS = 3500  # Quantos triângulos tentar inserir
+QUANTIDADE_OBSTACULOS = 4000  # Quantos triângulos tentar inserir
 LADO_TRIANGULO = 10         # Tamanho do lado de cada triângulo equilátero
 
 EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
@@ -14,7 +15,7 @@ EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
 
 # ===== ESTRUTURA DE DADOS =====
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Triangulo:
     """Representa um triângulo com 3 vértices (tuplas x, y)."""
     v1: tuple
@@ -41,6 +42,10 @@ class MapaVisibilidade:
         self.obstaculos = []
         self.quant_colisoes = 0
         self.quant_inseridos = 0
+
+        # Otimização: Grid para Particionamento Espacial (Spatial Hashing)
+        self.tamanho_celula = LADO_TRIANGULO * 2
+        self.grid: Dict[Tuple[int, int], List[Triangulo]] = {} # Dicionário que mapeia coordenadas de células para listas de triângulos que ocupam essas células
 
     # =========================================================
     # 1. GERAÇÃO DE TRIÂNGULOS EQUILÁTEROS
@@ -183,9 +188,32 @@ class MapaVisibilidade:
     # 4. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
     # =========================================================
 
-    def _colide_com_algum_obstaculo(self, novo):
-        """Verifica se o novo triângulo colide com qualquer obstáculo existente."""
-        for obstaculo in self.obstaculos:
+    def obter_celulas(self, tri: Triangulo) -> List[Tuple[int, int]]:
+        """Retorna uma lista contendo as coordenadas das células do grid que este triângulo ocupa."""
+        minx, maxx, miny, maxy = self.bounding_box(tri)
+        
+        celula_min_x = int(minx // self.tamanho_celula)
+        celula_max_x = int(maxx // self.tamanho_celula)
+        celula_min_y = int(miny // self.tamanho_celula)
+        celula_max_y = int(maxy // self.tamanho_celula)
+        
+        celulas = []
+        for x in range(celula_min_x, celula_max_x + 1):
+            for y in range(celula_min_y, celula_max_y + 1):
+                celulas.append((x, y))
+        return celulas
+
+    def _colide_com_algum_obstaculo(self, novo: Triangulo, celulas_novo: List[Tuple[int, int]]) -> bool:
+        """Verifica colisão focando APENAS nos vizinhos que habitam as mesmas áreas no grid."""
+        candidatos_a_colisao = set()
+        
+        # Pega todos os obstáculos que dividem as mesmas células do grid
+        for celula in celulas_novo:
+            if celula in self.grid:
+                candidatos_a_colisao.update(self.grid[celula])
+                
+        # Testa a colisão apenas contra esse pequeno grupo
+        for obstaculo in candidatos_a_colisao:
             # Filtro rápido: se as caixas não se tocam, pula
             if not self.bbox_colidem(novo, obstaculo):
                 continue
@@ -210,10 +238,18 @@ class MapaVisibilidade:
                 cx = random.uniform(margem_x, self.largura - margem_x)          # Sorteia a coordenada x do centro do triângulo
                 cy = random.uniform(margem_y_base, self.altura - margem_y_topo) # Sorteia a coordenada y do centro do triângulo
                 novo = self.gerar_triangulo(cx, cy, lado)                       # Gera o triângulo
+                
+                celulas_novo = self.obter_celulas(novo)
 
-                if not self._colide_com_algum_obstaculo(novo):                  # Verifica se o novo triângulo colide com algum obstáculo existente
-                    self.obstaculos.append(novo)
-                    self.quant_inseridos += 1
+                if not self._colide_com_algum_obstaculo(novo, celulas_novo):    # Verifica se o novo triângulo colide com algum obstáculo existente
+                    self.obstaculos.append(novo)                                # Adiciona o novo triângulo à lista de obstáculos
+                    self.quant_inseridos += 1                                   # Incrementa o contador de obstáculos inseridos
+                    
+                    for celula in celulas_novo:                                 # Adiciona o novo triângulo ao grid
+                        if celula not in self.grid:                             # Se a célula não existir, cria
+                            self.grid[celula] = []                              # Cria a célula 
+                        self.grid[celula].append(novo)                          # Adiciona o novo triângulo à célula
+                        
                     break
 
     # =========================================================
