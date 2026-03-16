@@ -104,6 +104,16 @@ class MapaVisibilidade:
         """
         return (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0])
 
+    def ponto_no_segmento(self, A, B, P):
+        """
+        Verifica se o ponto P (já sabido colinear com A e B)
+        está dentro do retângulo delimitado pelo segmento AB.
+        """
+        return (
+            min(A[0], B[0]) <= P[0] <= max(A[0], B[0]) and
+            min(A[1], B[1]) <= P[1] <= max(A[1], B[1])
+        )
+
     def ponto_dentro_triangulo(self, P, tri):
         """
         Verifica se o ponto P está dentro do triângulo usando
@@ -122,11 +132,39 @@ class MapaVisibilidade:
         # Se tem sinais misturados, P está fora do triângulo
         return not (tem_negativo and tem_positivo)
 
+    def segmentos_cruzam(self, A, B, C, D):
+        """
+        Verifica se o segmento AB cruza o segmento CD.
+        Usa orientação para determinar se os pontos estão
+        em lados opostos de cada reta.
+        """
+        d1 = self.orientacao(A, B, C)
+        d2 = self.orientacao(A, B, D)
+        d3 = self.orientacao(C, D, A)
+        d4 = self.orientacao(C, D, B)
+
+        # Caso geral: pontos em lados opostos (sinais trocados)
+        if (d1 * d2 < 0) and (d3 * d4 < 0):
+            return True
+
+        # Casos especiais: ponto colinear encostando no segmento
+        if abs(d1) < EPS and self.ponto_no_segmento(A, B, C): # Se o ponto C estiver colinear com A e B
+            return True
+        if abs(d2) < EPS and self.ponto_no_segmento(A, B, D): # Se o ponto D estiver colinear com A e B
+            return True
+        if abs(d3) < EPS and self.ponto_no_segmento(C, D, A): # Se o ponto A estiver colinear com C e D
+            return True
+        if abs(d4) < EPS and self.ponto_no_segmento(C, D, B): # Se o ponto B estiver colinear com C e D
+            return True
+
+        return False
+
     def triangulos_colidem(self, tri1, tri2):
         """
-        Verifica colisão real entre dois triângulos em 2 etapas:
+        Verifica colisão real entre dois triângulos em 3 etapas:
         1. Algum vértice de tri1 está dentro de tri2?
         2. Algum vértice de tri2 está dentro de tri1?
+        3. Alguma aresta de tri1 cruza alguma aresta de tri2?
         """
         # Etapa 1: vértices de tri1 dentro de tri2
         for vertice in tri1.vertices():
@@ -137,6 +175,12 @@ class MapaVisibilidade:
         for vertice in tri2.vertices():
             if self.ponto_dentro_triangulo(vertice, tri1):
                 return True
+
+        # Etapa 3: cruzamento de arestas (caso "Estrela de Davi")
+        for a1, b1 in tri1.arestas():
+            for a2, b2 in tri2.arestas():
+                if self.segmentos_cruzam(a1, b1, a2, b2):
+                    return True
 
         return False
 
