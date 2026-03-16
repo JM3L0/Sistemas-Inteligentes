@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import random
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
@@ -14,7 +15,7 @@ EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
 
 # ===== ESTRUTURA DE DADOS =====
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Triangulo:
     """Representa um triângulo com 3 vértices (tuplas x, y)."""
     v1: tuple
@@ -41,6 +42,10 @@ class MapaVisibilidade:
         self.obstaculos = []
         self.quant_colisoes = 0
         self.quant_inseridos = 0
+
+        # Otimização: Grid para Particionamento Espacial (Spatial Hashing)
+        self.tamanho_celula = LADO_TRIANGULO * 2
+        self.grid: Dict[Tuple[int, int], List[Triangulo]] = {} # Dicionário que mapeia coordenadas de células para listas de triângulos que ocupam essas células
 
     # =========================================================
     # 1. GERAÇÃO DE TRIÂNGULOS EQUILÁTEROS
@@ -99,16 +104,6 @@ class MapaVisibilidade:
         """
         return (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0])
 
-    def ponto_no_segmento(self, A, B, P):
-        """
-        Verifica se o ponto P (já sabido colinear com A e B)
-        está dentro do retângulo delimitado pelo segmento AB.
-        """
-        return (
-            min(A[0], B[0]) <= P[0] <= max(A[0], B[0]) and
-            min(A[1], B[1]) <= P[1] <= max(A[1], B[1])
-        )
-
     def ponto_dentro_triangulo(self, P, tri):
         """
         Verifica se o ponto P está dentro do triângulo usando
@@ -127,39 +122,11 @@ class MapaVisibilidade:
         # Se tem sinais misturados, P está fora do triângulo
         return not (tem_negativo and tem_positivo)
 
-    def segmentos_cruzam(self, A, B, C, D):
-        """
-        Verifica se o segmento AB cruza o segmento CD.
-        Usa orientação para determinar se os pontos estão
-        em lados opostos de cada reta.
-        """
-        d1 = self.orientacao(A, B, C)
-        d2 = self.orientacao(A, B, D)
-        d3 = self.orientacao(C, D, A)
-        d4 = self.orientacao(C, D, B)
-
-        # Caso geral: pontos em lados opostos (sinais trocados)
-        if (d1 * d2 < 0) and (d3 * d4 < 0):
-            return True
-
-        # Casos especiais: ponto colinear encostando no segmento
-        if abs(d1) < EPS and self.ponto_no_segmento(A, B, C): # Se o ponto C estiver colinear com A e B
-            return True
-        if abs(d2) < EPS and self.ponto_no_segmento(A, B, D): # Se o ponto D estiver colinear com A e B
-            return True
-        if abs(d3) < EPS and self.ponto_no_segmento(C, D, A): # Se o ponto A estiver colinear com C e D
-            return True
-        if abs(d4) < EPS and self.ponto_no_segmento(C, D, B): # Se o ponto B estiver colinear com C e D
-            return True
-
-        return False
-
     def triangulos_colidem(self, tri1, tri2):
         """
-        Verifica colisão real entre dois triângulos em 3 etapas:
+        Verifica colisão real entre dois triângulos em 2 etapas:
         1. Algum vértice de tri1 está dentro de tri2?
         2. Algum vértice de tri2 está dentro de tri1?
-        3. Alguma aresta de tri1 cruza alguma aresta de tri2?
         """
         # Etapa 1: vértices de tri1 dentro de tri2
         for vertice in tri1.vertices():
@@ -171,21 +138,39 @@ class MapaVisibilidade:
             if self.ponto_dentro_triangulo(vertice, tri1):
                 return True
 
-        # Etapa 3: cruzamento de arestas (caso "Estrela de Davi")
-        for a1, b1 in tri1.arestas():
-            for a2, b2 in tri2.arestas():
-                if self.segmentos_cruzam(a1, b1, a2, b2):
-                    return True
-
         return False
 
     # =========================================================
     # 4. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
     # =========================================================
 
-    def _colide_com_algum_obstaculo(self, novo):
-        """Verifica se o novo triângulo colide com qualquer obstáculo existente."""
-        for obstaculo in self.obstaculos:
+    def obter_celulas(self, tri: Triangulo) -> List[Tuple[int, int]]:
+        """Retorna uma lista contendo as coordenadas das células do grid que este triângulo ocupa."""
+        minx, maxx, miny, maxy = self.bounding_box(tri)
+        
+        # Arredonda para baixo para obter as coordenadas das células
+        celula_min_x = int(minx // self.tamanho_celula)
+        celula_max_x = int(maxx // self.tamanho_celula)
+        celula_min_y = int(miny // self.tamanho_celula)
+        celula_max_y = int(maxy // self.tamanho_celula)
+        
+        celulas = []
+        for x in range(celula_min_x, celula_max_x + 1):
+            for y in range(celula_min_y, celula_max_y + 1):
+                celulas.append((x, y))
+        return celulas
+
+    def _colide_com_algum_obstaculo(self, novo: Triangulo, celulas_novo: List[Tuple[int, int]]) -> bool:
+        """Verifica colisão focando APENAS nos vizinhos que habitam as mesmas áreas no grid."""
+        candidatos_a_colisao = set()
+        
+        # Pega todos os obstáculos que dividem as mesmas células do grid
+        for celula in celulas_novo:
+            if celula in self.grid:
+                candidatos_a_colisao.update(self.grid[celula])
+                
+        # Testa a colisão apenas contra esse pequeno grupo
+        for obstaculo in candidatos_a_colisao:
             # Filtro rápido: se as caixas não se tocam, pula
             if not self.bbox_colidem(novo, obstaculo):
                 continue
@@ -210,10 +195,18 @@ class MapaVisibilidade:
                 cx = random.uniform(margem_x, self.largura - margem_x)          # Sorteia a coordenada x do centro do triângulo
                 cy = random.uniform(margem_y_base, self.altura - margem_y_topo) # Sorteia a coordenada y do centro do triângulo
                 novo = self.gerar_triangulo(cx, cy, lado)                       # Gera o triângulo
+                
+                celulas_novo = self.obter_celulas(novo)
 
-                if not self._colide_com_algum_obstaculo(novo):                  # Verifica se o novo triângulo colide com algum obstáculo existente
-                    self.obstaculos.append(novo)
-                    self.quant_inseridos += 1
+                if not self._colide_com_algum_obstaculo(novo, celulas_novo):    # Verifica se o novo triângulo colide com algum obstáculo existente
+                    self.obstaculos.append(novo)                                # Adiciona o novo triângulo à lista de obstáculos
+                    self.quant_inseridos += 1                                   # Incrementa o contador de obstáculos inseridos
+                    
+                    for celula in celulas_novo:                                 # Adiciona o novo triângulo ao grid
+                        if celula not in self.grid:                             # Se a célula não existir, cria
+                            self.grid[celula] = []                              # Cria a célula 
+                        self.grid[celula].append(novo)                          # Adiciona o novo triângulo à célula
+                        
                     break
 
     # =========================================================

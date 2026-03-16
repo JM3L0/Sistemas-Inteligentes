@@ -7,7 +7,7 @@ from dataclasses import dataclass
 # ===== PARÂMETROS DO MAPA =====
 LARGURA = 1000               # Largura do mapa (eixo X)
 ALTURA = 500                # Altura do mapa (eixo Y)
-QUANTIDADE_OBSTACULOS = 3500  # Quantos triângulos tentar inserir
+QUANTIDADE_OBSTACULOS = 4000  # Quantos triângulos tentar inserir
 LADO_TRIANGULO = 10         # Tamanho do lado de cada triângulo equilátero
 
 EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
@@ -64,31 +64,6 @@ class MapaVisibilidade:
 
         return Triangulo(ponta_superior, base_esquerda, base_direita)
 
-    # =========================================================
-    # 2. FILTRO RÁPIDO — BOUNDING BOX (Caixa Envolvente)
-    # =========================================================
-
-    def bounding_box(self, tri):
-        """Retorna o menor retângulo que envolve o triângulo: (minX, maxX, minY, maxY)."""
-        xs = [v[0] for v in tri.vertices()]
-        ys = [v[1] for v in tri.vertices()]
-        return min(xs), max(xs), min(ys), max(ys)
-
-    def bbox_colidem(self, tri1, tri2):
-        """
-        Verifica se as caixas envolventes (bounding boxes) se sobrepõem.
-        Se NÃO se sobrepõem, é impossível os triângulos colidirem.
-        """
-        minx1, maxx1, miny1, maxy1 = self.bounding_box(tri1)
-        minx2, maxx2, miny2, maxy2 = self.bounding_box(tri2)
-
-        # Se qualquer condição for verdadeira, estão separados
-        return not (
-            maxx1 < minx2 or  # tri1 totalmente à esquerda de tri2
-            maxx2 < minx1 or  # tri2 totalmente à esquerda de tri1
-            maxy1 < miny2 or  # tri1 totalmente abaixo de tri2
-            maxy2 < miny1     # tri2 totalmente abaixo de tri1
-        )
 
     # =========================================================
     # 3. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
@@ -104,16 +79,6 @@ class MapaVisibilidade:
         """
         return (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0])
 
-    def ponto_no_segmento(self, A, B, P):
-        """
-        Verifica se o ponto P (já sabido colinear com A e B)
-        está dentro do retângulo delimitado pelo segmento AB.
-        """
-        return (
-            min(A[0], B[0]) <= P[0] <= max(A[0], B[0]) and
-            min(A[1], B[1]) <= P[1] <= max(A[1], B[1])
-        )
-
     def ponto_dentro_triangulo(self, P, tri):
         """
         Verifica se o ponto P está dentro do triângulo usando
@@ -121,10 +86,7 @@ class MapaVisibilidade:
         Se P estiver sempre do mesmo lado das 3 arestas, está dentro.
         """
         A, B, C = tri.vertices()
-
-        d1 = self.orientacao(A, B, P)
-        d2 = self.orientacao(B, C, P)
-        d3 = self.orientacao(C, A, P)
+        d1, d2, d3 = self.orientacao(A, B, P), self.orientacao(B, C, P), self.orientacao(C, A, P)
 
         tem_negativo = (d1 < -EPS) or (d2 < -EPS) or (d3 < -EPS)
         tem_positivo = (d1 > EPS) or (d2 > EPS) or (d3 > EPS)
@@ -132,57 +94,14 @@ class MapaVisibilidade:
         # Se tem sinais misturados, P está fora do triângulo
         return not (tem_negativo and tem_positivo)
 
-    def segmentos_cruzam(self, A, B, C, D):
-        """
-        Verifica se o segmento AB cruza o segmento CD.
-        Usa orientação para determinar se os pontos estão
-        em lados opostos de cada reta.
-        """
-        d1 = self.orientacao(A, B, C)
-        d2 = self.orientacao(A, B, D)
-        d3 = self.orientacao(C, D, A)
-        d4 = self.orientacao(C, D, B)
-
-        # Caso geral: pontos em lados opostos (sinais trocados)
-        if (d1 * d2 < 0) and (d3 * d4 < 0):
-            return True
-
-        # Casos especiais: ponto colinear encostando no segmento
-        if abs(d1) < EPS and self.ponto_no_segmento(A, B, C): # Se o ponto C estiver colinear com A e B
-            return True
-        if abs(d2) < EPS and self.ponto_no_segmento(A, B, D): # Se o ponto D estiver colinear com A e B
-            return True
-        if abs(d3) < EPS and self.ponto_no_segmento(C, D, A): # Se o ponto A estiver colinear com C e D
-            return True
-        if abs(d4) < EPS and self.ponto_no_segmento(C, D, B): # Se o ponto B estiver colinear com C e D
-            return True
-
-        return False
-
     def triangulos_colidem(self, tri1, tri2):
         """
-        Verifica colisão real entre dois triângulos em 3 etapas:
+        Verifica colisão real entre dois triângulos em 2 etapas:
         1. Algum vértice de tri1 está dentro de tri2?
         2. Algum vértice de tri2 está dentro de tri1?
-        3. Alguma aresta de tri1 cruza alguma aresta de tri2?
         """
-        # Etapa 1: vértices de tri1 dentro de tri2
-        for vertice in tri1.vertices():
-            if self.ponto_dentro_triangulo(vertice, tri2):
-                return True
-
-        # Etapa 2: vértices de tri2 dentro de tri1
-        for vertice in tri2.vertices():
-            if self.ponto_dentro_triangulo(vertice, tri1):
-                return True
-
-        # Etapa 3: cruzamento de arestas (caso "Estrela de Davi")
-        for a1, b1 in tri1.arestas():
-            for a2, b2 in tri2.arestas():
-                if self.segmentos_cruzam(a1, b1, a2, b2):
-                    return True
-
-        return False
+        return (any(self.ponto_dentro_triangulo(v, tri2) for v in tri1.vertices()) or
+                any(self.ponto_dentro_triangulo(v, tri1) for v in tri2.vertices()))
 
     # =========================================================
     # 4. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
@@ -190,18 +109,14 @@ class MapaVisibilidade:
 
     def obter_celulas(self, tri: Triangulo) -> List[Tuple[int, int]]:
         """Retorna uma lista contendo as coordenadas das células do grid que este triângulo ocupa."""
-        minx, maxx, miny, maxy = self.bounding_box(tri)
+        xs = [v[0] for v in tri.vertices()]
+        ys = [v[1] for v in tri.vertices()]
+        minx, maxx, miny, maxy = min(xs), max(xs), min(ys), max(ys)
         
-        celula_min_x = int(minx // self.tamanho_celula)
-        celula_max_x = int(maxx // self.tamanho_celula)
-        celula_min_y = int(miny // self.tamanho_celula)
-        celula_max_y = int(maxy // self.tamanho_celula)
+        cel_min_x, cel_max_x = int(minx // self.tamanho_celula), int(maxx // self.tamanho_celula)
+        cel_min_y, cel_max_y = int(miny // self.tamanho_celula), int(maxy // self.tamanho_celula)
         
-        celulas = []
-        for x in range(celula_min_x, celula_max_x + 1):
-            for y in range(celula_min_y, celula_max_y + 1):
-                celulas.append((x, y))
-        return celulas
+        return [(x, y) for x in range(cel_min_x, cel_max_x + 1) for y in range(cel_min_y, cel_max_y + 1)]
 
     def _colide_com_algum_obstaculo(self, novo: Triangulo, celulas_novo: List[Tuple[int, int]]) -> bool:
         """Verifica colisão focando APENAS nos vizinhos que habitam as mesmas áreas no grid."""
@@ -212,16 +127,11 @@ class MapaVisibilidade:
             if celula in self.grid:
                 candidatos_a_colisao.update(self.grid[celula])
                 
-        # Testa a colisão apenas contra esse pequeno grupo
-        for obstaculo in candidatos_a_colisao:
-            # Filtro rápido: se as caixas não se tocam, pula
-            if not self.bbox_colidem(novo, obstaculo):
-                continue
-            # Filtro preciso: verifica colisão real dos triângulos
-            if self.triangulos_colidem(novo, obstaculo):
-                self.quant_colisoes += 1
-                return True
-        return False
+        colidiu = any(self.triangulos_colidem(novo, obs) for obs in candidatos_a_colisao)
+        if colidiu:
+            self.quant_colisoes += 1
+            
+        return colidiu
 
     def adicionar_obstaculos_aleatorios(self, qtd, lado):
         """
