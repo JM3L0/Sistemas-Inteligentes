@@ -136,7 +136,7 @@ Usa **Matplotlib** para renderizar o mapa:
 ## Execução
 
 ```bash
-python teste4.py
+python Mapa_de_visibilidade.py
 ```
 
 **Saída:**
