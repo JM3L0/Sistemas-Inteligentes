@@ -5,13 +5,12 @@ from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
-LARGURA = 1000               # Largura do mapa (eixo X)
-ALTURA = 500                # Altura do mapa (eixo Y)
-QUANTIDADE_OBSTACULOS = 3500  # Quantos triângulos tentar inserir
+LARGURA = 100               # Largura do mapa (eixo X)
+ALTURA = 50                 # Altura do mapa (eixo Y)
+QUANTIDADE_OBSTACULOS = 35  # Quantos triângulos tentar inserir
 LADO_TRIANGULO = 10         # Tamanho do lado de cada triângulo equilátero
 
 EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
-
 
 # ===== ESTRUTURA DE DADOS =====
 
@@ -25,12 +24,6 @@ class Triangulo:
     def vertices(self):
         """Retorna os 3 vértices como lista."""
         return [self.v1, self.v2, self.v3]
-
-    def arestas(self):
-        """Retorna as 3 arestas como pares de vértices: [(v1,v2), (v2,v3), (v3,v1)]."""
-        vs = self.vertices()
-        return [(vs[i], vs[(i + 1) % 3]) for i in range(3)]
-
 
 # ===== CLASSE PRINCIPAL =====
 
@@ -64,31 +57,6 @@ class MapaVisibilidade:
 
         return Triangulo(ponta_superior, base_esquerda, base_direita)
 
-    # =========================================================
-    # 2. FILTRO RÁPIDO — BOUNDING BOX (Caixa Envolvente)
-    # =========================================================
-
-    def bounding_box(self, tri):
-        """Retorna o menor retângulo que envolve o triângulo: (minX, maxX, minY, maxY)."""
-        xs = [v[0] for v in tri.vertices()]
-        ys = [v[1] for v in tri.vertices()]
-        return min(xs), max(xs), min(ys), max(ys)
-
-    def bbox_colidem(self, tri1, tri2):
-        """
-        Verifica se as caixas envolventes (bounding boxes) se sobrepõem.
-        Se NÃO se sobrepõem, é impossível os triângulos colidirem.
-        """
-        minx1, maxx1, miny1, maxy1 = self.bounding_box(tri1)
-        minx2, maxx2, miny2, maxy2 = self.bounding_box(tri2)
-
-        # Se qualquer condição for verdadeira, estão separados
-        return not (
-            maxx1 < minx2 or  # tri1 totalmente à esquerda de tri2
-            maxx2 < minx1 or  # tri2 totalmente à esquerda de tri1
-            maxy1 < miny2 or  # tri1 totalmente abaixo de tri2
-            maxy2 < miny1     # tri2 totalmente abaixo de tri1
-        )
 
     # =========================================================
     # 3. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
@@ -106,21 +74,19 @@ class MapaVisibilidade:
 
     def ponto_dentro_triangulo(self, P, tri):
         """
-        Verifica se o ponto P está dentro do triângulo usando
-        o método dos semi-planos (3 testes de orientação).
-        Se P estiver sempre do mesmo lado das 3 arestas, está dentro.
+        Verifica se o ponto P está dentro do triângulo.
+        Como a função `gerar_triangulo` cria sempre vértices na mesma 
+        ordem (sentido anti-horário), não precisamos checar se os sinais 
+        são misturados. Qualquer ponto interno nunca terá orientação negativa.
         """
         A, B, C = tri.vertices()
 
-        d1 = self.orientacao(A, B, P)
-        d2 = self.orientacao(B, C, P)
-        d3 = self.orientacao(C, A, P)
+        # Short-circuit: se o ponto está à direita de qualquer aresta, está fora.
+        if self.orientacao(A, B, P) < -EPS: return False
+        if self.orientacao(B, C, P) < -EPS: return False
+        if self.orientacao(C, A, P) < -EPS: return False
 
-        tem_negativo = (d1 < -EPS) or (d2 < -EPS) or (d3 < -EPS)
-        tem_positivo = (d1 > EPS) or (d2 > EPS) or (d3 > EPS)
-
-        # Se tem sinais misturados, P está fora do triângulo
-        return not (tem_negativo and tem_positivo)
+        return True
 
     def triangulos_colidem(self, tri1, tri2):
         """
@@ -146,7 +112,9 @@ class MapaVisibilidade:
 
     def obter_celulas(self, tri: Triangulo) -> List[Tuple[int, int]]:
         """Retorna uma lista contendo as coordenadas das células do grid que este triângulo ocupa."""
-        minx, maxx, miny, maxy = self.bounding_box(tri)
+        (x1, y1), (x2, y2), (x3, y3) = tri.vertices()
+        minx, maxx = min(x1, x2, x3), max(x1, x2, x3)
+        miny, maxy = min(y1, y2, y3), max(y1, y2, y3)
         
         # Arredonda para baixo para obter as coordenadas das células
         celula_min_x = int(minx // self.tamanho_celula)
@@ -171,9 +139,6 @@ class MapaVisibilidade:
                 
         # Testa a colisão apenas contra esse pequeno grupo
         for obstaculo in candidatos_a_colisao:
-            # Filtro rápido: se as caixas não se tocam, pula
-            if not self.bbox_colidem(novo, obstaculo):
-                continue
             # Filtro preciso: verifica colisão real dos triângulos
             if self.triangulos_colidem(novo, obstaculo):
                 self.quant_colisoes += 1
