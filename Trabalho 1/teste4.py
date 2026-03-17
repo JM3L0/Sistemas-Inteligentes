@@ -59,7 +59,7 @@ class MapaVisibilidade:
 
 
     # =========================================================
-    # 3. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
+    # 2. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
     # =========================================================
 
     def orientacao(self, A, B, C):
@@ -107,7 +107,7 @@ class MapaVisibilidade:
         return False
 
     # =========================================================
-    # 4. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
+    # 3. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
     # =========================================================
 
     def obter_celulas(self, tri: Triangulo) -> List[Tuple[int, int]]:
@@ -175,7 +175,7 @@ class MapaVisibilidade:
                     break
 
     # =========================================================
-    # 5. SAÍDA — PLOTAGEM DO MAPA
+    # 4. SAÍDA — PLOTAGEM DO MAPA
     # =========================================================
 
     def plotar_mapa(self):
