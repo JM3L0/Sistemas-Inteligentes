@@ -1,14 +1,14 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.pyplot as plt # type: ignore
+import numpy as np # type: ignore
 import random
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
-LARGURA = 1000
-ALTURA = 1000
-QUANTIDADE_OBSTACULOS = 300
-LADO_TRIANGULO = 20
+LARGURA = 100
+ALTURA = 50
+QUANTIDADE_OBSTACULOS = 30
+LADO_TRIANGULO = 10
 
 EPS = 0
 
@@ -89,7 +89,7 @@ class MapaVisibilidade:
         candidatos = set()
         for c in celulas_novo:
             if c in self.grid:
-                candidatos.update(self.grid[c])
+                candidatos.update(self.grid[c]) # type: ignore
         for ob in candidatos:
             if self.triangulos_colidem(novo, ob):
                 self.quant_colisoes += 1
@@ -195,7 +195,7 @@ class MapaVisibilidade:
 
         for i in range(n):
             for j in range(i + 1, n):
-                P, Q = nos[i], nos[j]
+                P, Q = nos[i], nos[j] # type: ignore
                 if self._caminho_livre(P, Q):
                     self.grafo[P].append(Q)
                     self.grafo[Q].append(P)
@@ -204,62 +204,21 @@ class MapaVisibilidade:
         print(f"[Grafo] {arestas} arestas de visibilidade.")
 
     # =========================================================
-    # BLOCO 4 — A* SOBRE O GRAFO
+    # BLOCO 4 — PLOTAGEM
     # =========================================================
 
-    def astar(self):
-        import heapq
+    def plotar_mapa(self, mostrar_grafo=True):
+        fig, ax = plt.subplots(figsize=(8, 4))
 
-        ORIGEM  = (0.0, 0.0)
-        DESTINO = (float(self.largura), float(self.altura))
-
-        def h(a, b):
-            return np.hypot(a[0] - b[0], a[1] - b[1])
-
-        fila = [(0.0, ORIGEM)]
-        veio_de = {ORIGEM: None}
-        g = {ORIGEM: 0.0}
-
-        while fila:
-            _, atual = heapq.heappop(fila)
-            if atual == DESTINO:
-                break
-            for viz in self.grafo.get(atual, []):
-                novo_g = g[atual] + h(atual, viz)
-                if viz not in g or novo_g < g[viz]:
-                    g[viz] = novo_g
-                    heapq.heappush(fila, (novo_g + h(viz, DESTINO), viz))
-                    veio_de[viz] = atual
-
-        if DESTINO not in veio_de:
-            print("[A*] Caminho nao encontrado.")
-            return []
-
-        caminho, no = [], DESTINO
-        while no is not None:
-            caminho.append(no)
-            no = veio_de[no]
-        caminho.reverse()
-        print(f"[A*] Caminho com {len(caminho)} vertices encontrado.")
-        return caminho
-
-    # =========================================================
-    # BLOCO 5 — PLOTAGEM
-    # =========================================================
-
-    def plotar_mapa(self, caminho=None, mostrar_grafo=True):
-        fig, ax = plt.subplots(figsize=(9, 9))
         ax.set_xlim(0, self.largura)
         ax.set_ylim(0, self.altura)
         ax.set_aspect('equal')
-        ax.set_facecolor('#12121f')
-        fig.patch.set_facecolor('#12121f')
 
         # Obstaculos
         for tri in self.obstaculos:
             vs = tri.vertices()
             xs, ys = zip(*(vs + [vs[0]]))
-            ax.fill(xs, ys, color='#c0392b', alpha=0.75, edgecolor='#e74c3c', linewidth=0.6)
+            ax.fill(xs, ys, color="red", alpha=0.5, edgecolor="black")
 
         # Arestas do grafo de visibilidade
         if mostrar_grafo and self.grafo:
@@ -269,35 +228,16 @@ class MapaVisibilidade:
                     chave = (min(P, Q), max(P, Q))
                     if chave not in plotados:
                         ax.plot([P[0], Q[0]], [P[1], Q[1]],
-                                color='#1e3a5c', linewidth=0.25, alpha=0.9, zorder=2)
+                                color='blue', linewidth=0.3, alpha=0.5)
                         plotados.add(chave)
 
-        # Caminho otimo
-        if caminho and len(caminho) > 1:
-            xs = [p[0] for p in caminho]
-            ys = [p[1] for p in caminho]
-            ax.plot(xs, ys, color='#00e5ff', linewidth=2.0,
-                    zorder=5, marker='o', markersize=3, label='Caminho otimo (A*)')
-
         # Origem e destino
-        ax.plot(0, 0, marker='s', color='#2ecc71', markersize=12,
-                zorder=6, label='Origem (0, 0)')
-        ax.plot(self.largura, self.altura, marker='s', color='#f1c40f',
-                markersize=12, zorder=6, label=f'Destino ({self.largura}, {self.altura})')
+        ax.plot(0, 0, 'bs')
+        ax.plot(self.largura, self.altura, 'gs')
 
         arestas = sum(len(v) for v in self.grafo.values()) // 2 if self.grafo else 0
-        ax.set_title(
-            f"Obstaculos: {len(self.obstaculos)}  |  "
-            f"Vertices: {len(self.grafo)}  |  "
-            f"Arestas visiveis: {arestas}",
-            color='white', fontsize=11, pad=10
-        )
-        ax.tick_params(colors='#666')
-        for spine in ax.spines.values():
-            spine.set_edgecolor('#333')
-        ax.legend(facecolor='#1a1a2e', labelcolor='white', fontsize=9, loc='upper left')
-        ax.grid(color='#1e1e2e', linewidth=0.4)
-        plt.tight_layout()
+        plt.title(f"Obstáculos: {len(self.obstaculos)}  |  Colisões: {self.quant_colisoes}  |  Arestas visíveis: {arestas}")
+        plt.grid()
         plt.show()
 
 
@@ -312,7 +252,4 @@ print(f"Inseridos: {mapa.quant_inseridos}  |  Colisoes: {mapa.quant_colisoes}")
 print("Construindo grafo de visibilidade...")
 mapa.construir_grafo()
 
-print("Calculando caminho otimo (A*)...")
-caminho = mapa.astar()
-
-mapa.plotar_mapa(caminho=caminho, mostrar_grafo=True)
+mapa.plotar_mapa(mostrar_grafo=True)
