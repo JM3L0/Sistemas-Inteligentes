@@ -5,10 +5,10 @@ from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
-LARGURA = 100
-ALTURA = 50
-QUANTIDADE_OBSTACULOS = 30
-LADO_TRIANGULO = 10
+LARGURA = 1000
+ALTURA = 1000
+QUANTIDADE_OBSTACULOS = 1000
+LADO_TRIANGULO = 20
 
 EPS = 0
 
@@ -100,15 +100,19 @@ class MapaVisibilidade:
         margem_x     = (lado / 2) + EPS
         margem_y_top = (lado / np.sqrt(3)) + EPS
         margem_y_bas = (lado / (2 * np.sqrt(3))) + EPS
+
         for _ in range(qtd):
             for _ in range(self.largura * 2):
+
                 cx = random.uniform(margem_x, self.largura - margem_x)
                 cy = random.uniform(margem_y_bas, self.altura - margem_y_top)
                 novo = self.gerar_triangulo(cx, cy, lado)
                 celulas = self.obter_celulas(novo)
+
                 if not self._colide_com_algum_obstaculo(novo, celulas):
                     self.obstaculos.append(novo)
                     self.quant_inseridos += 1
+                    
                     for c in celulas:
                         self.grid.setdefault(c, []).append(novo)
                     break
