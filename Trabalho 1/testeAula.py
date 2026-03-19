@@ -60,7 +60,7 @@ class MapaVisibilidade:
 
 
     # =========================================================
-    # 3. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
+    # 2. FILTRO PRECISO — GEOMETRIA COMPUTACIONAL
     # =========================================================
 
     def orientacao(self, A, B, C):
@@ -108,7 +108,7 @@ class MapaVisibilidade:
         return False
 
     # =========================================================
-    # 6. GRAFO DE VISIBILIDADE E PATHFINDING
+    # 3. GRAFO DE VISIBILIDADE E PATHFINDING
     # =========================================================
 
     def _segmento_intersecta_segmento(self, p1, p2, q1, q2):
