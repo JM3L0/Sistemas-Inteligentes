@@ -1,13 +1,14 @@
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import random
+import math
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
 LARGURA = 100               # Largura do mapa (eixo X)
 ALTURA = 50                 # Altura do mapa (eixo Y)
-QUANTIDADE_OBSTACULOS = 35  # Quantos triângulos tentar inserir
+QUANTIDADE_OBSTACULOS = 5  # Quantos triângulos tentar inserir
 LADO_TRIANGULO = 10         # Tamanho do lado de cada triângulo equilátero
 
 EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
@@ -107,6 +108,98 @@ class MapaVisibilidade:
         return False
 
     # =========================================================
+    # 6. GRAFO DE VISIBILIDADE E PATHFINDING
+    # =========================================================
+
+    def _segmento_intersecta_segmento(self, p1, p2, q1, q2):
+        """Testa interseção (stricta) entre segmentos p1-p2 e q1-q2."""
+        def orient(a, b, c):
+            return (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0])
+
+        o1 = orient(p1, p2, q1)
+        o2 = orient(p1, p2, q2)
+        o3 = orient(q1, q2, p1)
+        o4 = orient(q1, q2, p2)
+
+        if o1*o2 < -EPS and o3*o4 < -EPS:
+            return True
+
+        return False
+
+    def _segmento_intersecta_triangulo(self, a, b, tri: Triangulo):
+        """Verifica se segmento (a,b) intersecta qualquer aresta do triângulo.
+        Interseções que ocorrem exatamente nos endpoints a ou b são permitidas.
+        """
+        verts = tri.vertices()
+        edges = [(verts[0], verts[1]), (verts[1], verts[2]), (verts[2], verts[0])]
+
+        for (u, v) in edges:
+            # permitir se a interseção acontece apenas nos endpoints compartilhados
+            if (u == a or u == b or v == a or v == b):
+                continue
+            if self._segmento_intersecta_segmento(a, b, u, v):
+                return True
+
+        # também checar se o ponto médio está dentro do triângulo (passando pelo interior)
+        mx = (a[0] + b[0]) / 2.0
+        my = (a[1] + b[1]) / 2.0
+        if self.ponto_dentro_triangulo((mx, my), tri):
+            return True
+
+        return False
+
+    def visivel(self, a, b):
+        """Retorna True se o segmento entre a e b não atravessa nenhum obstáculo."""
+        # Otimização: testa só obstáculos em células do grid tocadas pelo segmento
+        celulas_segmento = self.obter_celulas_segmento(a, b)
+        candidatos = set()
+        for celula in celulas_segmento:
+            if celula in self.grid:
+                candidatos.update(self.grid[celula])
+
+        for tri in candidatos:
+            if self._segmento_intersecta_triangulo(a, b, tri):
+                return False
+        return True
+
+    def construir_grafo_visibilidade(self, incluir_inicial_final=True):
+        """Constrói um dicionário adjacente {vert: [(viz, dist), ...]} entre vértices visíveis."""
+        vertices = []
+        for tri in self.obstaculos:
+            vertices.extend(tri.vertices())
+
+        if incluir_inicial_final:
+            inicio = (0.0, 0.0)
+            fim = (float(self.largura), float(self.altura))
+            vertices.append(inicio)
+            vertices.append(fim)
+        else:
+            inicio = fim = None
+
+        # remover duplicados mantendo ordem
+        uniq = []
+        seen = set()
+        for v in vertices:
+            if v not in seen:
+                seen.add(v)
+                uniq.append(v)
+
+        adj = {v: [] for v in uniq}
+        n = len(uniq)
+        for i in range(n):
+            for j in range(i+1, n):
+                a = uniq[i]
+                b = uniq[j]
+                if self.visivel(a, b):
+                    d = math.hypot(a[0]-b[0], a[1]-b[1])
+                    adj[a].append((b, d))
+                    adj[b].append((a, d))
+
+        # salvar último grafo para uso na plotagem
+        self._ultimo_grafo = adj
+        return adj, inicio, fim
+
+    # =========================================================
     # 4. ORQUESTRAÇÃO — INSERÇÃO DE OBSTÁCULOS ALEATÓRIOS
     # =========================================================
 
@@ -122,6 +215,22 @@ class MapaVisibilidade:
         celula_min_y = int(miny // self.tamanho_celula)
         celula_max_y = int(maxy // self.tamanho_celula)
         
+        celulas = []
+        for x in range(celula_min_x, celula_max_x + 1):
+            for y in range(celula_min_y, celula_max_y + 1):
+                celulas.append((x, y))
+        return celulas
+
+    def obter_celulas_segmento(self, a, b) -> List[Tuple[int, int]]:
+        """Retorna células do grid cobertas pelo retângulo envolvente do segmento (a,b)."""
+        minx, maxx = min(a[0], b[0]), max(a[0], b[0])
+        miny, maxy = min(a[1], b[1]), max(a[1], b[1])
+
+        celula_min_x = int(minx // self.tamanho_celula)
+        celula_max_x = int(maxx // self.tamanho_celula)
+        celula_min_y = int(miny // self.tamanho_celula)
+        celula_max_y = int(maxy // self.tamanho_celula)
+
         celulas = []
         for x in range(celula_min_x, celula_max_x + 1):
             for y in range(celula_min_y, celula_max_y + 1):
@@ -154,7 +263,6 @@ class MapaVisibilidade:
         margem_x = (lado / 2) + EPS                         # Extensão horizontal do triângulo
         margem_y_topo = (lado / np.sqrt(3)) + EPS           # Distância do centro à ponta de cima
         margem_y_base = (lado / (2 * np.sqrt(3))) + EPS     # Distância do centro à base
-
 
         for _ in range(qtd):
             for tentativa in range(self.largura * 2):
@@ -199,6 +307,18 @@ class MapaVisibilidade:
 
         plt.title(f"Obstáculos: {len(self.obstaculos)}  |  Colisões: {self.quant_colisoes}")
         plt.grid()
+
+        # Desenha todas as arestas visíveis (grafo de visibilidade) com linha muito fina
+        if hasattr(self, '_ultimo_grafo') and self._ultimo_grafo:
+            desenhadas = set()
+            for u, neighbors in self._ultimo_grafo.items():
+                for v, _ in neighbors:
+                    edge = frozenset((u, v))
+                    if edge in desenhadas:
+                        continue
+                    desenhadas.add(edge)
+                    ax.plot([u[0], v[0]], [u[1], v[1]], color='gray', alpha=0.6, linewidth=0.4)
+
         plt.show()
 
 
@@ -210,6 +330,10 @@ mapa.adicionar_obstaculos_aleatorios(
     QUANTIDADE_OBSTACULOS,
     LADO_TRIANGULO
 )
+
+# Construir grafo de visibilidade e encontrar caminho entre os vértices visíveis
+grafo, inicio, fim = mapa.construir_grafo_visibilidade(incluir_inicial_final=True)
+# Não executar A* por enquanto — apenas desenhar todas as arestas do grafo
 
 mapa.plotar_mapa()
 
