@@ -5,12 +5,12 @@ from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
-LARGURA = 100               # Largura do mapa (eixo X)
-ALTURA = 50                 # Altura do mapa (eixo Y)
-QUANTIDADE_OBSTACULOS = 35  # Quantos triângulos tentar inserir
-LADO_TRIANGULO = 10         # Tamanho do lado de cada triângulo equilátero
+LARGURA = 1000               # Largura do mapa (eixo X)
+ALTURA = 1000                 # Altura do mapa (eixo Y)
+QUANTIDADE_OBSTACULOS = 1000  # Quantos triângulos tentar inserir
+LADO_TRIANGULO = 20         # Tamanho do lado de cada triângulo equilátero
 
-EPS = 1e-9  # Margem de tolerância para comparações com ponto flutuante
+EPS = 0 
 
 # ===== ESTRUTURA DE DADOS =====
 
