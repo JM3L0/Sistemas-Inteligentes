@@ -5,10 +5,10 @@ from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 # ===== PARÂMETROS DO MAPA =====
-LARGURA = 1000
-ALTURA = 1000
-QUANTIDADE_OBSTACULOS = 1000
-LADO_TRIANGULO = 20
+LARGURA = 100
+ALTURA = 50
+QUANTIDADE_OBSTACULOS = 30
+LADO_TRIANGULO = 10
 
 EPS = 0
 
