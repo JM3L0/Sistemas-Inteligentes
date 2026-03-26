@@ -226,7 +226,7 @@ class MapaVisibilidade:
             if not opcoes: break  # Fim da linha (preso)
 
             # Calcula a inclinação perfeita de onde estamos para o destino
-            ang_alvo = math.atan2(fim[1] - atual[1], fim[0] - atual[0])
+            ang_alvo = math.atan2(fim[1] - atual[1], fim[0] - atual[0]) # type: ignore
             
             def nota(v):
                 # Pega a diferença do ângulo ideal para o ângulo deste passo
