@@ -277,7 +277,7 @@ class MapaVisibilidade:
         if caminho:
             cx, cy = zip(*caminho)
             ax.plot(cx, cy, color='orange', linewidth=3)
-            ax.legend()
+            ax.legend(frameon=False)
 
         arestas = sum(len(v) for v in self.grafo.values()) // 2 if self.grafo else 0
         plt.title(f"Obstáculos: {len(self.obstaculos)}  |  Colisões: {self.quant_colisoes}  |  Arestas visíveis: {arestas}")
