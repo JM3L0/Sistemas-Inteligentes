@@ -9,7 +9,7 @@ from dataclasses import dataclass
 # ===== PARÂMETROS DO MAPA =====
 LARGURA = 100
 ALTURA = 50
-QUANTIDADE_OBSTACULOS = 60
+QUANTIDADE_OBSTACULOS = 150
 LADO_TRIANGULO = 5
 
 EPS = 0
@@ -103,8 +103,8 @@ class MapaVisibilidade:
         margem_y_top = (lado / np.sqrt(3)) + EPS
         margem_y_bas = (lado / (2 * np.sqrt(3))) + EPS
 
-        for _ in range(qtd):
-            for _ in range(self.largura * 2):
+        for _ in range(qtd): # Tentativas para inserir cada obstáculo
+            for _ in range(self.largura * 2): # Tentativas para achar posição sem colisão
 
                 cx = random.uniform(margem_x, self.largura - margem_x)
                 cy = random.uniform(margem_y_bas, self.altura - margem_y_top)
