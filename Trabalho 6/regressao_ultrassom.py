@@ -104,7 +104,7 @@ def filtrar_xy(df: pd.DataFrame):
 # ==============================================================
 
 def _min_lista(lst: list) -> float:
-    """Retorna o mínimo de uma lista — implementado manualmente."""
+    """Retorna o mínimo de uma lista."""
     minimo = lst[0]
     for v in lst:
         if v < minimo:
@@ -113,7 +113,7 @@ def _min_lista(lst: list) -> float:
 
 
 def _max_lista(lst: list) -> float:
-    """Retorna o máximo de uma lista — implementado manualmente."""
+    """Retorna o máximo de uma lista."""
     maximo = lst[0]
     for v in lst:
         if v > maximo:
@@ -158,7 +158,7 @@ def normalizar_minmax(X: list):
 def _embaralhar_lcg(n: int, seed: int = 50) -> list:
     """
     Gera uma permutação aleatória de índices 0..n-1 usando um
-    Gerador Congruencial Linear (LCG) — implementado manualmente.
+    Gerador Congruencial Linear (LCG).
     Parâmetros de Knuth: a=1664525, c=1013904223, m=2^32.
     """
     a, c, m = 1_664_525, 1_013_904_223, 2 ** 32
@@ -208,7 +208,7 @@ def _transpor(M: list) -> list:
 
 
 def _mult_mat(A: list, B: list) -> list:
-    """Multiplicação de matrizes A × B — implementada manualmente."""
+    """Multiplicação de matrizes A × B."""
     n, m, p = len(A), len(B[0]), len(B)
     C = [[0.0] * m for _ in range(n)]
     for i in range(n):
@@ -223,7 +223,7 @@ def _mult_mat(A: list, B: list) -> list:
 def _inverter_gauss(M: list) -> list:
     """
     Inverte a matriz M usando Eliminação de Gauss-Jordan
-    com pivotamento parcial — implementada manualmente.
+    com pivotamento parcial.
     """
     n = len(M)
     # Matriz aumentada [M | I]
@@ -254,7 +254,7 @@ def _inverter_gauss(M: list) -> list:
 
 
 def _mult_mat_vec(M: list, v: list) -> list:
-    """Multiplica matriz M por vetor v — implementada manualmente."""
+    """Multiplica matriz M por vetor v."""
     return [sum(M[i][j] * v[j] for j in range(len(v))) for i in range(len(M))]
 
 
@@ -263,7 +263,6 @@ def _regularizar_XtX(XtX: list, lam: float = 1e-4) -> list:
     Adiciona regularizacao de Tikhonov (Ridge) a diagonal de XtX:
         XtX_reg = XtX + lambda * I
     Isso evita singularidade quando features sao altamente correlacionadas.
-    Implementado manualmente.
     """
     n = len(XtX)
     XtX_reg = [row[:] for row in XtX]   # copia profunda
@@ -277,13 +276,12 @@ def regressao_linear(X_treino: list, y_treino: list, lam: float = 1e-4) -> list:
     Calcula os coeficientes beta da regressao linear multipla pela
     Equacao Normal com regularizacao Ridge:
         beta = (XtX + lambda*I)^-1 * Xty
-    Toda a algebra linear e implementada manualmente.
     Retorna o vetor beta (bias + pesos das features).
     """
     X_b  = _adicionar_bias(X_treino)          # n x (p+1)
     Xt   = _transpor(X_b)                      # (p+1) x n
     XtX  = _mult_mat(Xt, X_b)                 # (p+1) x (p+1)
-    XtX_reg = _regularizar_XtX(XtX, lam)      # regularizacao Ridge manual
+    XtX_reg = _regularizar_XtX(XtX, lam)      # regularizacao Ridge
     XtXi = _inverter_gauss(XtX_reg)           # inversa por Gauss-Jordan
     Xty  = _mult_mat_vec(Xt, y_treino)        # (p+1)
     beta = _mult_mat_vec(XtXi, Xty)           # (p+1)
@@ -305,13 +303,13 @@ def prever(X: list, beta: list) -> list:
 # ==============================================================
 
 def _media(valores: list) -> float:
-    """Calcula a média aritmética — implementada manualmente."""
+    """Calcula a média aritmética."""
     return sum(valores) / len(valores)
 
 
 def calcular_r2(y_real: list, y_pred: list) -> float:
     """
-    Calcula o Coeficiente de Determinacao R2 manualmente:
+    Calcula o Coeficiente de Determinacao R2:
         SS_res = soma( (yi - yi_pred)^2 )
         SS_tot = soma( (yi - media_y)^2 )
         R2     = 1 - SS_res / SS_tot
