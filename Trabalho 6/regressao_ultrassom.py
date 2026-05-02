@@ -18,12 +18,6 @@ import pandas as pd
 # Garante saida UTF-8 no Windows (evita UnicodeEncodeError no terminal)
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-# ==============================================================
-# CONFIGURACAO — altere o valor abaixo para ajustar o modelo
-# ==============================================================
-# Regularizacao Ridge (lambda): penaliza coeficientes grandes para
-# evitar overfitting. Valores menores = modelo mais livre = R² maior.
-# Sugestoes para testar: 1e-6, 1e-5, 1e-4 (padrao), 1e-3, 1e-2
 LAMBDA_RIDGE: float = 1e-4
 
 # ==============================================================
