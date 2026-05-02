@@ -90,9 +90,6 @@ def filtrar_xy(df: pd.DataFrame):
     # Remover linhas com NaN remanescente
     subset = subset[[col_y] + cols_x].dropna()
 
-    print(f"[2] Apos limpeza: {len(subset)} amostras | {len(cols_x)} features")
-    print(f"    Features: {cols_x}")
-
     y = subset[col_y].tolist()
     X = subset[cols_x].values.tolist()
 
@@ -147,7 +144,6 @@ def normalizar_minmax(X: list):
                 linha.append((X[i][j] - minimos[j]) / denom)
         X_norm.append(linha)
 
-    print(f"[3] Normalização Min-Max aplicada em {n_features} features.")
     return X_norm, minimos, maximos
 
 
@@ -188,7 +184,7 @@ def dividir_treino_teste(X: list, y: list, razao_treino: float = 0.7, seed: int 
     X_teste  = X_emb[n_treino:]
     y_teste  = y_emb[n_treino:]
 
-    print(f"[4] Divisão 70/30 (seed={seed}): Treino={len(y_treino)} | Teste={len(y_teste)}")
+    print(f"[2] Divisão 70/30 (seed={seed}): Treino={len(y_treino)} | Teste={len(y_teste)}")
     return X_treino, y_treino, X_teste, y_teste
 
 
@@ -285,7 +281,6 @@ def regressao_linear(X_treino: list, y_treino: list, lam: float = 1e-4) -> list:
     XtXi = _inverter_gauss(XtX_reg)           # inversa por Gauss-Jordan
     Xty  = _mult_mat_vec(Xt, y_treino)        # (p+1)
     beta = _mult_mat_vec(XtXi, Xty)           # (p+1)
-    print(f"[5] Modelo treinado. {len(beta)} parametros (b0 + {len(beta)-1} pesos). lambda={lam}")
     return beta
 
 
@@ -345,9 +340,6 @@ def executar_pipeline(caminho_csv: str) -> dict:
     Orquestra todas as etapas do pipeline de regressao.
     """
     linha = "=" * 60
-    print(f"\n{linha}")
-    print("  REGRESSAO LINEAR - IMAGEM ULTRASSOM BOVINO")
-    print(f"{linha}\n")
 
     # 1. Carregar
     df = carregar_dados(caminho_csv)
@@ -369,18 +361,16 @@ def executar_pipeline(caminho_csv: str) -> dict:
     y_pred_tr = prever(X_tr, beta)
     r2_te = calcular_r2(y_te, y_pred_te)
     r2_tr = calcular_r2(y_tr, y_pred_tr)
-    print(f"[6] R2 Treino: {r2_tr:.4f}  |  R2 Teste: {r2_te:.4f}")
+    print(f"[3] R2 Treino: {r2_tr:.4f}  |  R2 Teste: {r2_te:.4f}")
 
     # 7. Validacao
     aprovado, status = validar_precisao(r2_te)
-    print(f"[7] Validacao (limiar=0.80): {status}")
 
     # Resumo
     print(f"\n{linha}")
     print("  RESUMO FINAL")
     print(f"{linha}")
     print(f"  Amostras totais : {len(y)}")
-    print(f"  Features usadas : {len(cols_x)} -> {cols_x}")
     print(f"  Amostras treino : {len(y_tr)}")
     print(f"  Amostras teste  : {len(y_te)}")
     print(f"  R2 Treino       : {r2_tr:.4f}")
@@ -396,12 +386,6 @@ def executar_pipeline(caminho_csv: str) -> dict:
     for i in range(min(10, len(y_te))):
         erro = abs(y_te[i] - y_pred_te[i])
         print(f"  {y_te[i]:>10.2f} | {y_pred_te[i]:>10.2f} | {erro:>10.2f}")
-
-    # Mostrar coeficientes
-    print(f"\n  Coeficientes beta:")
-    print(f"  {'b0 (bias)':>15}: {beta[0]:.4f}")
-    for i, col in enumerate(cols_x):
-        print(f"  {col:>15}: {beta[i+1]:.4f}")
 
     return {
         "beta": beta,
