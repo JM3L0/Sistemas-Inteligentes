@@ -19,6 +19,14 @@ import pandas as pd
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 # ==============================================================
+# CONFIGURACAO — altere o valor abaixo para ajustar o modelo
+# ==============================================================
+# Regularizacao Ridge (lambda): penaliza coeficientes grandes para
+# evitar overfitting. Valores menores = modelo mais livre = R² maior.
+# Sugestoes para testar: 1e-6, 1e-5, 1e-4 (padrao), 1e-3, 1e-2
+LAMBDA_RIDGE: float = 1e-4
+
+# ==============================================================
 # MÓDULO 1 — CARREGAMENTO DE DADOS
 # ==============================================================
 
@@ -362,7 +370,7 @@ def executar_pipeline(caminho_csv: str) -> dict:
     X_tr, y_tr, X_te, y_te = dividir_treino_teste(X_norm, y, 0.7, seed=50)
 
     # 5. Regressão
-    beta = regressao_linear(X_tr, y_tr)
+    beta = regressao_linear(X_tr, y_tr, lam=LAMBDA_RIDGE)
 
     # 6. R²
     y_pred_te = prever(X_te, beta)
