@@ -1,0 +1,68 @@
+﻿Descri├º├úo: 
+Nesta atividade voc├¬s devem aprimorar o perceptron simples para uma Rede Neural 
+Multicamadas (MLP)  e devem continuar usando s├│ Python e Numpy. A ideia ├® construir um 
+modelo que consiga aprender a l├│gica do XOR, que n├úo pode ser resolvida com um perceptron 
+simples. A quantidade de camadas, neur├┤nios e outros par├ómetros ficam a crit├®rio, desde que 
+seja uma MLP.  
+ 
+XOR: 
+ 
+Para esse caso, A e B s├úo as entradas e X ├® a sa├¡da desejada. 
+ 
+Entrega: C├│digo em python ou notebook jupyter. 
+ 
+Instru├º├Áes: 
+ 
+Passos da Propaga├º├úo: 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+(72.0, 72.60198974609375, 542.9281616210938, 179.39105224609375, 'Descri├º├úo: \nNesta atividade voc├¬s devem aprimorar o perceptron simples para uma Rede Neural \nMulticamadas (MLP)  e devem continuar usando s├│ Python e Numpy. A ideia ├® construir um \nmodelo que consiga aprender a l├│gica do XOR, que n├úo pode ser resolvida com um perceptron \nsimples. A quantidade de camadas, neur├┤nios e outros par├ómetros ficam a crit├®rio, desde que \nseja uma MLP.  \n \nXOR: \n', 0, 0)
+(72.0, 297.5419921875, 383.64434814453125, 404.39105224609375, ' \nPara esse caso, A e B s├úo as entradas e X ├® a sa├¡da desejada. \n \nEntrega: C├│digo em python ou notebook jupyter. \n \nInstru├º├Áes: \n \nPassos da Propaga├º├úo: \n', 1, 0)
+(72.0, 598.2919921875, 546.0579833984375, 718.6410522460938, ' \n \n \n \n \n \n \n \n \n', 2, 0)
+Passos do Retropropaga├º├úo: 
+ 
+Passo 1: 
+ 
+ 
+ 
+ 
+Passo 2:ÔÇï
+ 
+Passo 3:ÔÇï
+ 
+Passo 4:ÔÇï
+ 
+ 
+Passo 5:ÔÇï
+ 
+ 
+
+(72.0, 72.60198974609375, 227.762451171875, 84.89105224609375, 'Passos do Retropropaga├º├úo: \n', 0, 0)
+(51.0, 86.10198974609375, 111.05799865722656, 111.89105224609375, ' \nPasso 1: \n', 1, 0)
+(270.0, 218.75518798828125, 271.8348083496094, 226.12863159179688, ' \n', 2, 0)
+(51.0, 232.315185546875, 52.834800720214844, 239.68862915039062, ' \n', 3, 0)
+(51.0, 245.815185546875, 52.834800720214844, 253.18862915039062, ' \n', 4, 0)
+(51.0, 259.3152160644531, 99.27195739746094, 279.14105224609375, ' \nPasso 2:\u200b\n', 5, 0)
+(54.0, 437.0419921875, 227.30799865722656, 462.89105224609375, ' \nPasso 3:\u200b\n', 6, 0)
+(234.0, 701.0419921875, 237.05799865722656, 713.3310546875, ' \n', 7, 0)
+(334.5, 113.10198974609375, 382.77197265625, 125.39105224609375, 'Passo 4:\u200b\n', 8, 0)
+(334.5, 353.7919921875, 583.5579833984375, 393.14105224609375, ' \n \nPasso 5:\u200b\n', 9, 0)
+(531.0, 675.5419921875, 534.0579833984375, 687.8310546875, ' \n', 10, 0)
+(378.0, 695.065185546875, 379.8348083496094, 702.4385986328125, ' \n', 11, 0)
+Total de pßginas: 2
+
+=== P┴GINA 1 ===
+
+--- Blocos de texto da pßgina 1 ---
+
+=== P┴GINA 2 ===
+
+--- Blocos de texto da pßgina 2 ---
