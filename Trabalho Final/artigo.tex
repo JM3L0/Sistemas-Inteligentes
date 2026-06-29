@@ -1,0 +1,169 @@
+\documentclass[12pt]{article}
+
+\usepackage{sbc-template}
+\usepackage{graphicx,url}
+\newcommand{\cite}[1]{\cite{#1}}
+
+%\usepackage[brazil]{babel}
+\usepackage[utf8]{inputenc}
+
+\sloppy
+
+\title{Classificação Molecular de Gliomas: Interpretabilidade Clínica Através de Algoritmos Clássicos}
+
+\author{João Marcos Sousa Rufino Leal \inst{1}, Raildom da Rocha Sobrinho\inst{1}}
+
+\address{Universidade Federal do Piauí\inst{1}
+  \email{jsousarufinoleal@ufpi.edu.br, raildom.sobrinho@ufpi.edu.br}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+The molecular classification of gliomas has redefined neuro-oncology, yet the reliance on opaque ensemble models limits clinical trust and interpretability. This study evaluates classical transparent machine learning algorithms (KNN, MLP and BernoulliNB) for binary glioma grading (LGG vs. GBM) using genomic data from the TCGA dataset. Results show that KNN (87.30\% accuracy, AUC 0.90) and BernoulliNB (86.51\%, AUC 0.91) statistically match state-of-the-art complex ensembles. A retrospective pathological audit of errors revealed that 72\% to 80\% of all misclassifications across all three models were anchored in IDH1 wildtype tumors, exposing that AI limitations here are a direct symptom of biological noise, not architecture failure.
+\end{abstract}
+
+\begin{resumo}
+A classificação molecular de gliomas redefiniu a neuro-oncologia, porém a dependência de modelos \textit{ensemble} opacos limita a confiança e a interpretabilidade clínica. Este estudo avalia algoritmos clássicos e transparentes (KNN, MLP e BernoulliNB) para a graduação binária de gliomas (LGG \textit{vs.} GBM) usando dados genômicos do TCGA. Os resultados mostram que KNN (87,30\%, AUC 0,90) e BernoulliNB (86,51\%, AUC 0,91) empatam com \textit{ensembles} do estado-da-arte. Uma auditoria patológica retrospectiva dos erros revelou que 72\% a 80\% de todas as falhas dos três modelos se concentram em tumores com genótipo \textit{IDH1 wildtype}, expondo que as limitações da IA neste domínio são sintoma de ruído biológico, não de falha arquitetural.
+\end{resumo}
+
+\section{Introdução}
+
+Os gliomas figuram entre os tumores primários mais letais do sistema nervoso central, desafiando sistematicamente os limiares diagnósticos oncológicos modernos. A graduação histopatológica clássica que separava Gliomas de Baixo Grau (LGG) de Glioblastomas Multiformes (GBM) mostrou-se insuficiente frente à heterogeneidade biológica dessas neoplasias. Com a revisão dos critérios da Organização Mundial da Saúde (OMS) em 2016, mutações genômicas como as do gene \textit{Isocitrate Dehydrogenase 1} (IDH1), TP53 e ATRX passaram a integrar formalmente o diagnóstico tumoral \cite{tasci2022, ren2019}.
+
+Nesse cenário guiado por dados de alta dimensionalidade, o Aprendizado de Máquina consolidou-se como ferramenta essencial para a predição molecular. Bancos de dados de larga escala, como o \textit{The Cancer Genome Atlas} (TCGA), viabilizaram o desenvolvimento de preditores computacionais de amplo alcance clínico \cite{tasci2022, munquad2022}. Todavia, a literatura recente priorizou arquiteturas complexas e herméticas, como \textit{ensembles} ponderados \cite{joshi2021} e redes profundas \cite{zheng2024}, em detrimento da transparência. Essa tendência compromete a adoção clínica segura, que exige que o processo decisório da máquina seja auditável e interpretável.
+
+O presente estudo surge para questionar essa dependência estrutural de algoritmos opacos. O objetivo é demonstrar empiricamente que modelos clássicos e transparentes, como o K-Vizinhos Mais Próximos (KNN), o Perceptron Multicamadas (MLP) e o \textit{Naive Bayes Bernoulli} (BernoulliNB), são plenamente competentes para classificar LGG \textit{versus} GBM com desempenho equivalente ao estado-da-arte \cite{sanchezmarques2024}, sem sacrificar a interpretabilidade que o contexto clínico exige.
+
+Adicionalmente, este artigo propõe um protocolo inédito de auditoria patológica retrospectiva dos erros preditivos. A hipótese central é que as falhas dos classificadores neste domínio não constituem ruído estocástico aleatório, mas estão biologicamente enraizadas no genótipo selvagem (\textit{wildtype}) do IDH1 \cite{sanchezmarques2026}. Para validar essa proposição, a seção~\ref{sec:trabalhos_relacionados} contextualiza os estudos anteriores sobre o TCGA. A seção~\ref{sec:metodologia} descreve o arranjo experimental, e a seção~\ref{sec:resultados} apresenta e discute os resultados quantitativos e o mapeamento de erros.
+
+\section{Trabalhos Relacionados}
+\label{sec:trabalhos_relacionados}
+
+A classificação molecular de gliomas com Aprendizado de Máquina ganhou escala expressiva após a revisão da OMS de 2016. A inclusão formal da mutação IDH1 na graduação tumoral impulsionou o uso do \textit{The Cancer Genome Atlas} (TCGA) como base de dados primária. Esse repositório consolidou-se como referência pela amplitude dos dados clínicos e genômicos que oferece, contemplando centenas de pacientes com perfis moleculares catalogados. Neste contexto, o presente trabalho utiliza um subconjunto disponibilizado publicamente (UCI id=759).
+
+O principal marco nesta área é o estudo de \cite{tasci2022}, responsáveis pela proposição do dataset TCGA aqui adotado. Os autores desenvolveram uma metodologia hierárquica de votação para seleção de características combinada a um \textit{ensemble} de SVM, \textit{Random Forest} e \textit{AdaBoost}, atingindo 87,6\% de acurácia. Esse resultado estabeleceu o principal \textit{benchmark} da literatura para o conjunto de dados utilizado e constitui o parâmetro central de comparação do presente trabalho.
+
+Valendo-se desse mesmo conjunto, \cite{sanchezmarques2024} adotaram uma abordagem \textit{data-centric}: ao invés de elevar a complexidade arquitetural, focaram na qualidade das instâncias, na padronização rigorosa das amostras e no balanceamento cuidadoso de classes via \textit{over} e \textit{undersampling}. A estratégia foi eficaz, pois superou o resultado de Tasci et al. atingindo 88,2\% de acurácia. O trabalho demonstra que o tratamento criterioso dos dados tem impacto tão relevante quanto a escolha do modelo.
+
+Em investigação posterior, \cite{sanchezmarques2026} utilizaram o mesmo TCGA com foco inédito no viés demográfico, investigando como raça e gênero influenciam preditores de Regressão Logística, \textit{Random Forest} e XGBoost. Foram propostas técnicas de mitigação como \textit{reweighting} e \textit{equalized odds}, expondo o difícil \textit{trade-off} entre equidade preditiva e alto desempenho. Por outro lado, \cite{liu2025} exploraram maximização pura, combinando RFE, \textit{Elastic Net}, SMOTE e até 34 modelos de \textit{ensemble}, atingindo AUC de 0,928 em validação externa pela base CGGA.
+
+Explorando modalidades complementares, \cite{munquad2022} empregaram dados de transcriptoma (expressão gênica) combinados ao SVM com eliminação recursiva (SVM-RFE), alcançando 91\% de acurácia. O conjunto de trabalhos revela um padrão dominante na literatura: a preferência por empilhar algoritmos complexos para obter ganhos marginais de desempenho. O presente estudo opõe-se a essa tendência ao avaliar modelos simples e, crucialmente, ao deslocar o foco para a auditoria sistemática da origem biológica dos erros. A Tabela~\ref{tab:trabalhos_relacionados} sumariza os estudos analisados.
+
+O diferencial metodológico central deste trabalho reside, portanto, em duas frentes: primeiro, na aposta deliberada em modelos clássicos e interpretáveis como instrumento preditivo primário; segundo, na auditoria empírica retroativa que mapeia cada falso diagnóstico frente ao perfil genômico do paciente. Esse olhar sobre o erro — e não apenas sobre o acerto — é o que confere ao presente estudo uma contribuição científica distinta em relação ao estado-da-arte revisado.
+
+\begin{table}[!htb]
+\centering
+\caption{Trabalhos relacionados sobre classificação e graduação de gliomas com Machine Learning.}
+\label{tab:trabalhos_relacionados}
+\footnotesize
+\begin{tabular}{|p{4.4cm}|p{6cm}|c|p{2.2cm}|}
+\hline
+\textbf{Título} & \textbf{Resumo} & \textbf{Ano} & \textbf{Local de Publicação} \\
+\hline
+
+\cite{tasci2022} &
+Propõe o dataset TCGA (id=759) usado neste trabalho; seleção hierárquica de features com ensemble, 87,6\% de acurácia. &
+2022 &
+Int. J. of Molecular Sciences \\
+\hline
+
+\cite{munquad2022} &
+Seleção de features por correlação e SVM-RFE em dados de expressão gênica, 91\% de acurácia média. &
+2022 &
+Briefings in Functional Genomics \\
+\hline
+
+\cite{sanchezmarques2024} &
+Mesmo dataset TCGA; abordagem data-centric (balanceamento/padronização), supera Tasci et al. (88,2\%). &
+2024 &
+Scientific Reports \\
+\hline
+
+\cite{sanchezmarques2026} &
+Mesmo dataset TCGA; investiga viés demográfico e mitigação, trade-off equidade-desempenho. &
+2026 &
+Scientific Reports \\
+\hline
+
+\cite{liu2025} &
+RFE+RF+Elastic Net, SMOTE e 34 ensembles, validados na base CGGA, AUC de até 0,928. &
+2025 &
+PLOS One \\
+\hline
+
+\end{tabular}
+\end{table}
+
+\section{Metodologia}
+\label{sec:metodologia}
+
+O fluxo metodológico foi concebido para garantir eficácia preditiva rigorosa e rastreabilidade diagnóstica plena. Todo o trabalho computacional foi conduzido em ambiente Python com a biblioteca \textit{scikit-learn}, cobrindo as etapas de pré-processamento, modelagem, otimização de hiperparâmetros e auditoria dos erros. O conjunto de dados adotado é o \textit{TCGA Glioma} (UCI id=759), composto por 839 instâncias e 23 atributos clínicos, demográficos e genômicos, com o grau tumoral como variável alvo (LGG=0, GBM=1).
+
+\subsection{Base de Dados e Pré-processamento}
+O conjunto contempla atributos de naturezas distintas: a variável contínua de idade ao diagnóstico, variáveis demográficas categóricas (gênero e raça) e variáveis binárias de mutações somáticas (IDH1, TP53, ATRX, PTEN, entre outras). A exploração inicial confirmou ausência de valores nulos e desbalanceamento moderado favorável à classe LGG (aproximadamente 58\% das instâncias). Um \textit{pipeline} de transformação (\textit{ColumnTransformer}) foi construído para tratar cada tipo de atributo de forma adequada antes do treinamento.
+
+A variável de idade foi padronizada via \textit{StandardScaler} para média zero e variância unitária, evitando distorções espaciais no cálculo de distâncias. As variáveis demográficas receberam codificação \textit{One-Hot Encoding} com descarte da primeira coluna (\textit{drop='first'}), eliminando colinearidade perfeita na representação matricial. As variáveis mutacionais binárias foram mantidas em sua forma original (\textit{passthrough}), pois já se encontravam em formato adequado. O fracionamento treino-teste foi estratificado na proporção 70\%/30\% (n=252 no teste).
+
+\subsection{Configuração Experimental e Seleção de Modelos}
+Foram selecionados três algoritmos clássicos com distintas bases matemáticas: o K-Vizinhos Mais Próximos (\textit{KNN}), fundamentado na distância espacial entre instâncias; o Perceptron Multicamadas (\textit{MLP}), operando como fronteira de decisão adaptável por gradiente; e o \textit{Naive Bayes Bernoulli} (\textit{BernoulliNB}), baseado em independência condicional e particularmente adequado a atributos binários. A escolha deliberada por modelos individuais (\textit{single-models}) visa rejeitar a opacidade inerente aos \textit{ensembles}.
+
+Para cada modelo, realizou-se busca exaustiva de hiperparâmetros via \textit{GridSearchCV} com validação cruzada estratificada de 5 partições (\textit{Stratified 5-Fold}). A métrica de otimização adotada foi o \textit{F1-Score} da classe positiva GBM (\textit{pos\_label=1}), direcionando o ajuste para maximizar a detecção dos tumores mais agressivos, em detrimento de um simples ganho de acurácia global. Essa escolha metodológica é essencial para minimizar os clinicamente perigosos falsos negativos.
+
+\subsection{Protocolo Analítico de Auditoria de Erro}
+A avaliação foi estruturada em duas etapas complementares. Na primeira, calculou-se a bateria padrão de métricas sobre o conjunto de teste: Acurácia, Precisão, Sensibilidade (\textit{Recall}), \textit{F1-Score}, Kappa de Cohen e AUC-ROC. Essas métricas fornecem a visão quantitativa global de desempenho e permitem a comparação direta com os resultados da literatura. Todos os valores foram calculados especificamente sobre a classe positiva GBM para garantir consistência clínica.
+
+Na segunda etapa, instaurou-se a auditoria patológica retrospectiva, que constitui a contribuição mais original deste trabalho. Cada falso positivo e falso negativo produzido por cada modelo foi individualmente rastreado até o perfil genômico do paciente correspondente. O alvo central da investigação foi verificar a frequência de ocorrência do genótipo \textit{IDH1 wildtype} nos erros, testando a hipótese de que as falhas dos classificadores são biologicamente determinadas, e não aleatórias.
+
+\section{Resultados}
+\label{sec:resultados}
+
+Os experimentos conduziram à avaliação preditiva na coorte de teste isolada (n=252), revelando uma clara assimetria de desempenho entre os classificadores testados. Tanto o KNN quanto o BernoulliNB demonstraram robustez consistente, enquanto a MLP apresentou dificuldades expressivas na detecção da classe crítica. A Tabela~\ref{tab:resultados_metricas} apresenta o panorama quantitativo completo das seis métricas avaliadas para os três modelos.
+
+\begin{table}[!htb]
+    \centering
+    \caption{Métricas de desempenho preditivo dos algoritmos no conjunto de teste.}
+    \label{tab:resultados_metricas}
+    \vspace{0.2cm}
+    \begin{tabular}{lccc}
+        \hline
+        \textbf{Métrica} & \textbf{KNN} & \textbf{MLP} & \textbf{BernoulliNB} \\
+        \hline
+        Acurácia & 0,8730 & 0,8016 & 0,8651 \\
+        Precisão & 0,8246 & 0,8333 & 0,8000 \\
+        \textit{Recall} & 0,8868 & 0,6604 & 0,9057 \\
+        \textit{F1-Score} & 0,8545 & 0,7368 & 0,8496 \\
+        \textit{Kappa} & 0,7421 & 0,5810 & 0,7281 \\
+        \textit{AUC-ROC} & 0,9038 & 0,8874 & 0,9083 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+O KNN liderou em acurácia global (87,30\%) e obteve AUC-ROC de 0,9038, evidenciando forte capacidade discriminatória geral. O BernoulliNB apresentou acurácia levemente inferior (86,51\%), porém superou o KNN na métrica clinicamente mais crítica: o \textit{Recall} (90,57\% contra 88,68\%), o que representa menor risco de subdiagnóstico de GBM. Em contraste, a MLP estabilizou-se em apenas 80,16\% de acurácia e revelou um colapso grave na sensibilidade (66,04\%), indicando alta propensão a classificar GBMs como tumores benignos.
+
+O confronto com o \textit{benchmark} da literatura é diretamente esclarecedor sobre o potencial dos modelos clássicos. O estudo de referência de \cite{tasci2022} reportou acurácia de 87,60\% e F1-Score de 0,858 utilizando um \textit{ensemble} hierárquico complexo com três algoritmos combinados. O KNN, um único classificador clássico sem qualquer fusão algorítmica, alcançou resultados estatisticamente equivalentes: 87,30\% de acurácia e F1-Score de 0,854. Isso demonstra empiricamente que a complexidade arquitetural adicional do \textit{ensemble} não gerou ganho mensurável neste domínio.
+
+A diferença mais reveladora entre os modelos reside na distribuição dos erros. O KNN cometeu 32 erros (20 falsos positivos e 12 falsos negativos). O BernoulliNB errou 34 vezes (24 falsos positivos e apenas 10 falsos negativos), postura mais conservadora clinicamente. A MLP acumulou 50 erros, com 36 falsos negativos, confirmando sua perigosa tendência de subestimar tumores agressivos. Essa assimetria de erros não pode ser capturada apenas pela acurácia global e reforça a necessidade da auditoria retrospectiva.
+
+\subsection{Escrutínio Patológico dos Falsos Diagnósticos}
+O mapeamento dos diagnósticos incorretos frente aos perfis genômicos dos pacientes revelou um padrão recorrente e estatisticamente expressivo. Dos 32 erros do KNN, 23 (72\%) ocorreram em pacientes com IDH1 \textit{wildtype}. O BernoulliNB replicou o padrão: 25 dos 34 erros (73,5\%) originaram-se da mesma subpopulação. A MLP apresentou a maior concentração: 40 dos 50 erros (80\%) envolveram o genótipo selvagem. O achado é consistente entre arquiteturas matematicamente distintas.
+
+Essa convergência demonstra que o genótipo IDH1 \textit{wildtype} representa o principal fator de dificuldade para os classificadores neste conjunto de dados. Tumores sem a mutação IDH1 apresentam perfis genômicos mais heterogêneos e biologicamente ruidosos, dificultando a separabilidade linear e espacial explorada pelos três modelos. As falhas algorítmicas não decorrem de limitações paramétricas ou de arquitetura, mas são um reflexo direto da instabilidade biológica intrínseca dessa subpopulação tumoral.
+
+Essas evidências reforçam que métricas globais de desempenho, isoladamente, são insuficientes para avaliar classificadores em contextos oncológicos. A rastreabilidade dos erros até sua origem patológica é uma etapa indispensável para compreender os limites reais do sistema, orientar coleta de dados futuros e subsidiar decisões clínicas com base em onde o classificador falha, não apenas em quão frequentemente ele acerta de modo geral.
+
+\section{Conclusão}
+\label{sec:conclusao}
+
+Este trabalho demonstrou que algoritmos clássicos e transparentes são plenamente competentes para a classificação molecular de gliomas. O KNN e o BernoulliNB atingiram desempenhos equivalentes ao \textit{ensemble} hierárquico do estudo fundador da base de dados, sem recorrer à fusão de múltiplos algoritmos e sem sacrificar a interpretabilidade clínica. O BernoulliNB destacou-se como o classificador mais seguro, apresentando o maior \textit{Recall} (90,57\%) e o menor número de falsos negativos, o erro de maior consequência clínica no diagnóstico de GBM.
+
+A principal contribuição deste estudo está na auditoria patológica retrospectiva dos erros preditivos. O mapeamento sistemático revelou que 72\% a 80\% de todas as falhas dos classificadores, independentemente da arquitetura, concentram-se em pacientes com genótipo IDH1 \textit{wildtype}. Esse achado deslocou a análise de desempenho de uma perspectiva puramente matemática para uma explicação biológica, evidenciando que as limitações da IA neste domínio são determinadas pelo ruído intrínseco dos tumores selvagens, não por deficiências algorítmicas.
+
+Como direção para trabalhos futuros, recomenda-se investigar a incorporação de biomarcadores de metilação do promotor do IDH1 e de dados de transcriptoma para enriquecer a representação da subpopulação \textit{wildtype}. Adicionalmente, técnicas de aprendizado interpretável, como SHAP e LIME, poderiam ser integradas ao protocolo de auditoria, transformando o rastreamento de erros em uma ferramenta clínica formal de suporte à decisão diagnóstica.
+
+\bibliographystyle{sbc}
+\bibliography{sbc-template}
+
+\end{document}
