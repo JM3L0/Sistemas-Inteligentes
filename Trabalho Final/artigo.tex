@@ -2,7 +2,6 @@
 
 \usepackage{sbc-template}
 \usepackage{graphicx,url}
-\newcommand{\cite}[1]{\cite{#1}}
 
 %\usepackage[brazil]{babel}
 \usepackage[utf8]{inputenc}
@@ -11,7 +10,7 @@
 
 \title{Classificação Molecular de Gliomas: Interpretabilidade Clínica Através de Algoritmos Clássicos}
 
-\author{João Marcos Sousa Rufino Leal \inst{1}, Raildom da Rocha Sobrinho\inst{1}}
+\author{João Marcos Sousa Rufino Leal \inst{1}, Raildom da Rocha Sobrinho\inst{2}}
 
 \address{Universidade Federal do Piauí\inst{1}
   \email{jsousarufinoleal@ufpi.edu.br, raildom.sobrinho@ufpi.edu.br}
@@ -37,7 +36,7 @@ Nesse cenário guiado por dados de alta dimensionalidade, o Aprendizado de Máqu
 
 O presente estudo surge para questionar essa dependência estrutural de algoritmos opacos. O objetivo é demonstrar empiricamente que modelos clássicos e transparentes, como o K-Vizinhos Mais Próximos (KNN), o Perceptron Multicamadas (MLP) e o \textit{Naive Bayes Bernoulli} (BernoulliNB), são plenamente competentes para classificar LGG \textit{versus} GBM com desempenho equivalente ao estado-da-arte \cite{sanchezmarques2024}, sem sacrificar a interpretabilidade que o contexto clínico exige.
 
-Adicionalmente, este artigo propõe um protocolo inédito de auditoria patológica retrospectiva dos erros preditivos. A hipótese central é que as falhas dos classificadores neste domínio não constituem ruído estocástico aleatório, mas estão biologicamente enraizadas no genótipo selvagem (\textit{wildtype}) do IDH1 \cite{sanchezmarques2026}. Para validar essa proposição, a seção~\ref{sec:trabalhos_relacionados} contextualiza os estudos anteriores sobre o TCGA. A seção~\ref{sec:metodologia} descreve o arranjo experimental, e a seção~\ref{sec:resultados} apresenta e discute os resultados quantitativos e o mapeamento de erros.
+Adicionalmente, este artigo propõe um protocolo de auditoria patológica retrospectiva dos erros preditivos. A hipótese central é que as falhas dos classificadores neste domínio não constituem ruído estocástico aleatório, mas estão biologicamente enraizadas no genótipo selvagem (\textit{wildtype}) do IDH1 \cite{sanchezmarques2026}. Para validar essa proposição, a seção~\ref{sec:trabalhos_relacionados} contextualiza os estudos anteriores sobre o TCGA. A seção~\ref{sec:metodologia} descreve o arranjo experimental, e a seção~\ref{sec:resultados} apresenta e discute os resultados quantitativos e o mapeamento de erros.
 
 \section{Trabalhos Relacionados}
 \label{sec:trabalhos_relacionados}
@@ -48,11 +47,11 @@ O principal marco nesta área é o estudo de \cite{tasci2022}, responsáveis pel
 
 Valendo-se desse mesmo conjunto, \cite{sanchezmarques2024} adotaram uma abordagem \textit{data-centric}: ao invés de elevar a complexidade arquitetural, focaram na qualidade das instâncias, na padronização rigorosa das amostras e no balanceamento cuidadoso de classes via \textit{over} e \textit{undersampling}. A estratégia foi eficaz, pois superou o resultado de Tasci et al. atingindo 88,2\% de acurácia. O trabalho demonstra que o tratamento criterioso dos dados tem impacto tão relevante quanto a escolha do modelo.
 
-Em investigação posterior, \cite{sanchezmarques2026} utilizaram o mesmo TCGA com foco inédito no viés demográfico, investigando como raça e gênero influenciam preditores de Regressão Logística, \textit{Random Forest} e XGBoost. Foram propostas técnicas de mitigação como \textit{reweighting} e \textit{equalized odds}, expondo o difícil \textit{trade-off} entre equidade preditiva e alto desempenho. Por outro lado, \cite{liu2025} exploraram maximização pura, combinando RFE, \textit{Elastic Net}, SMOTE e até 34 modelos de \textit{ensemble}, atingindo AUC de 0,928 em validação externa pela base CGGA.
+Em investigação posterior, \cite{sanchezmarques2026} utilizaram o mesmo TCGA com foco no viés demográfico, investigando como raça e gênero influenciam preditores de Regressão Logística, \textit{Random Forest} e XGBoost. Foram propostas técnicas de mitigação como \textit{reweighting} e \textit{equalized odds}, expondo o difícil \textit{trade-off} entre equidade preditiva e alto desempenho. Por outro lado, \cite{liu2025} exploraram maximização pura, combinando RFE, \textit{Elastic Net}, SMOTE e até 34 modelos de \textit{ensemble}, atingindo AUC de 0,928 em validação externa pela base CGGA.
 
 Explorando modalidades complementares, \cite{munquad2022} empregaram dados de transcriptoma (expressão gênica) combinados ao SVM com eliminação recursiva (SVM-RFE), alcançando 91\% de acurácia. O conjunto de trabalhos revela um padrão dominante na literatura: a preferência por empilhar algoritmos complexos para obter ganhos marginais de desempenho. O presente estudo opõe-se a essa tendência ao avaliar modelos simples e, crucialmente, ao deslocar o foco para a auditoria sistemática da origem biológica dos erros. A Tabela~\ref{tab:trabalhos_relacionados} sumariza os estudos analisados.
 
-O diferencial metodológico central deste trabalho reside, portanto, em duas frentes: primeiro, na aposta deliberada em modelos clássicos e interpretáveis como instrumento preditivo primário; segundo, na auditoria empírica retroativa que mapeia cada falso diagnóstico frente ao perfil genômico do paciente. Esse olhar sobre o erro — e não apenas sobre o acerto — é o que confere ao presente estudo uma contribuição científica distinta em relação ao estado-da-arte revisado.
+O diferencial metodológico central deste trabalho reside, portanto, em duas frentes: primeiro, na aposta deliberada em modelos clássicos e interpretáveis como instrumento preditivo primário; segundo, na auditoria empírica retroativa que mapeia cada falso diagnóstico frente ao perfil genômico do paciente. Esse olhar sobre o erro, e não apenas sobre o acerto, é o que confere ao presente estudo uma contribuição científica distinta em relação ao estado-da-arte revisado.
 
 \begin{table}[!htb]
 \centering
@@ -65,7 +64,7 @@ O diferencial metodológico central deste trabalho reside, portanto, em duas fre
 \hline
 
 \cite{tasci2022} &
-Propõe o dataset TCGA (id=759) usado neste trabalho; seleção hierárquica de features com ensemble, 87,6\% de acurácia. &
+Propõe o dataset TCGA usado neste trabalho; seleção hierárquica de features com ensemble, 87,6\% de acurácia. &
 2022 &
 Int. J. of Molecular Sciences \\
 \hline
@@ -100,7 +99,7 @@ PLOS One \\
 \section{Metodologia}
 \label{sec:metodologia}
 
-O fluxo metodológico foi concebido para garantir eficácia preditiva rigorosa e rastreabilidade diagnóstica plena. Todo o trabalho computacional foi conduzido em ambiente Python com a biblioteca \textit{scikit-learn}, cobrindo as etapas de pré-processamento, modelagem, otimização de hiperparâmetros e auditoria dos erros. O conjunto de dados adotado é o \textit{TCGA Glioma} (UCI id=759), composto por 839 instâncias e 23 atributos clínicos, demográficos e genômicos, com o grau tumoral como variável alvo (LGG=0, GBM=1).
+O fluxo metodológico foi concebido para assegurar uma avaliação preditiva consistente e rastreável. Todo o trabalho computacional foi conduzido em ambiente Python com a biblioteca \textit{scikit-learn}, cobrindo as etapas de pré-processamento, modelagem, otimização de hiperparâmetros e auditoria dos erros. O conjunto de dados adotado é o \textit{TCGA Glioma}, composto por 839 instâncias e 23 atributos clínicos, demográficos e genômicos, com o grau tumoral como variável alvo (LGG=0, GBM=1).
 
 \subsection{Base de Dados e Pré-processamento}
 O conjunto contempla atributos de naturezas distintas: a variável contínua de idade ao diagnóstico, variáveis demográficas categóricas (gênero e raça) e variáveis binárias de mutações somáticas (IDH1, TP53, ATRX, PTEN, entre outras). A exploração inicial confirmou ausência de valores nulos e desbalanceamento moderado favorável à classe LGG (aproximadamente 58\% das instâncias). Um \textit{pipeline} de transformação (\textit{ColumnTransformer}) foi construído para tratar cada tipo de atributo de forma adequada antes do treinamento.
@@ -120,7 +119,7 @@ Na segunda etapa, instaurou-se a auditoria patológica retrospectiva, que consti
 \section{Resultados}
 \label{sec:resultados}
 
-Os experimentos conduziram à avaliação preditiva na coorte de teste isolada (n=252), revelando uma clara assimetria de desempenho entre os classificadores testados. Tanto o KNN quanto o BernoulliNB demonstraram robustez consistente, enquanto a MLP apresentou dificuldades expressivas na detecção da classe crítica. A Tabela~\ref{tab:resultados_metricas} apresenta o panorama quantitativo completo das seis métricas avaliadas para os três modelos.
+Os experimentos conduziram à avaliação preditiva na coorte de teste isolada (n=252), revelando uma clara assimetria de desempenho entre os classificadores testados. Tanto o KNN quanto o BernoulliNB demonstraram resultados consistentes, enquanto a MLP apresentou dificuldades expressivas na detecção da classe crítica. A Tabela~\ref{tab:resultados_metricas} apresenta o panorama quantitativo completo das seis métricas avaliadas para os três modelos.
 
 \begin{table}[!htb]
     \centering
@@ -129,7 +128,7 @@ Os experimentos conduziram à avaliação preditiva na coorte de teste isolada (
     \vspace{0.2cm}
     \begin{tabular}{lccc}
         \hline
-        \textbf{Métrica} & \textbf{KNN} & \textbf{MLP} & \textbf{BernoulliNB} \\
+        \textbf{Métrica}  & \textbf{KNN} & \textbf{MLP} & \textbf{BernoulliNB} \\
         \hline
         Acurácia & 0,8730 & 0,8016 & 0,8651 \\
         Precisão & 0,8246 & 0,8333 & 0,8000 \\
@@ -159,9 +158,9 @@ Essas evidências reforçam que métricas globais de desempenho, isoladamente, s
 
 Este trabalho demonstrou que algoritmos clássicos e transparentes são plenamente competentes para a classificação molecular de gliomas. O KNN e o BernoulliNB atingiram desempenhos equivalentes ao \textit{ensemble} hierárquico do estudo fundador da base de dados, sem recorrer à fusão de múltiplos algoritmos e sem sacrificar a interpretabilidade clínica. O BernoulliNB destacou-se como o classificador mais seguro, apresentando o maior \textit{Recall} (90,57\%) e o menor número de falsos negativos, o erro de maior consequência clínica no diagnóstico de GBM.
 
-A principal contribuição deste estudo está na auditoria patológica retrospectiva dos erros preditivos. O mapeamento sistemático revelou que 72\% a 80\% de todas as falhas dos classificadores, independentemente da arquitetura, concentram-se em pacientes com genótipo IDH1 \textit{wildtype}. Esse achado deslocou a análise de desempenho de uma perspectiva puramente matemática para uma explicação biológica, evidenciando que as limitações da IA neste domínio são determinadas pelo ruído intrínseco dos tumores selvagens, não por deficiências algorítmicas.
+A principal contribuição deste estudo está na auditoria patológica retrospectiva dos erros preditivos. O mapeamento sistemático revelou que 72\% a 80\% de todas as falhas dos classificadores, independentemente da arquitetura, concentram-se em pacientes com genótipo IDH1 \textit{wildtype}. Esse resultado indica que a avaliação dos modelos não deve se restringir a métricas matemáticas, podendo também considerar a origem biológica dos erros, evidenciando que as limitações da IA neste domínio são determinadas pelo ruído intrínseco dos tumores selvagens, não por deficiências algorítmicas.
 
-Como direção para trabalhos futuros, recomenda-se investigar a incorporação de biomarcadores de metilação do promotor do IDH1 e de dados de transcriptoma para enriquecer a representação da subpopulação \textit{wildtype}. Adicionalmente, técnicas de aprendizado interpretável, como SHAP e LIME, poderiam ser integradas ao protocolo de auditoria, transformando o rastreamento de erros em uma ferramenta clínica formal de suporte à decisão diagnóstica.
+Esse conjunto de achados reposiciona o protocolo de auditoria patológica não como uma etapa complementar à avaliação de modelos, mas como parte integrante de qualquer análise responsável em oncologia computacional. Se os erros dos classificadores são biologicamente determinados e não aleatórios, então diagnosticar onde e por quê um modelo falha possui valor clínico equivalente a medir onde ele acerta. A rastreabilidade do erro até o perfil genômico do paciente transforma a auditoria em um instrumento de compreensão da doença, não apenas de validação matemática do sistema.
 
 \bibliographystyle{sbc}
 \bibliography{sbc-template}
